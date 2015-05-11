@@ -17,10 +17,10 @@ use Workerman\Connection\TcpConnection;
 
 use \Workerman\Worker;
 use \Workerman\Lib\Timer;
-use \Workerman\Protocols\GatewayProtocol;
+use \Workerman\Autoloader;
+use \GatewayWorker\Protocols\GatewayProtocol;
 use \GatewayWorker\Lib\Lock;
 use \GatewayWorker\Lib\Store;
-use \Workerman\Autoloader;
 
 /**
  * 

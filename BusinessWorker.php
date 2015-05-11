@@ -17,8 +17,8 @@ use Workerman\Connection\TcpConnection;
 
 use \Workerman\Worker;
 use \Workerman\Connection\AsyncTcpConnection;
-use \Protocols\GatewayProtocol;
 use \Workerman\Lib\Timer;
+use \GatewayWorker\Protocols\GatewayProtocol;
 use \GatewayWorker\Lib\Lock;
 use \GatewayWorker\Lib\Store;
 use \GatewayWorker\Lib\Context;
