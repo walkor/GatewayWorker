@@ -349,10 +349,16 @@ class Gateway extends Worker
     
         if(!$global_client_id)
         {
-            $msg = "createGlobalClientId fail :";
-            if(get_class($store) == 'Memcached')
+            $class = get_class($store);
+            $msg = "createGlobalClientId fail $class :";
+            if($class === 'Memcached')
             {
                 $msg .= $store->getResultMessage();
+            }
+            elseif($class === 'Redis') 
+            {
+                $msg .= $store->getLastError();
+                $store->clearLastError();
             }
             $this->log($msg);
         }
