@@ -355,7 +355,7 @@ class Gateway extends Worker
             {
                 $msg .= $store->getResultMessage();
             }
-            elseif($class === 'Redis') 
+            elseif($class === 'GatewayWorker\Lib\StoreDriver\Redis') 
             {
                 $msg .= $store->getLastError();
                 $store->clearLastError();
