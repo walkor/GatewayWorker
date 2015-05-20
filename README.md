@@ -33,14 +33,14 @@ Applications\YourApp测试方法
 ======
 使用telnet命令测试（不要使用windows再带的telnet）
 ```shell
-telnet 127.0.0.1 8282
+ telnet 127.0.0.1 8282
 Trying 127.0.0.1...
 Connected to 127.0.0.1.
 Escape character is '^]'.
-Hello 1
-
-hi
-hi
+Hello 3
+3 login
+haha
+3 said haha
 ```
 
 手册
