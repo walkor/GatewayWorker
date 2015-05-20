@@ -36,7 +36,9 @@ class Event
     public static function onConnect($client_id)
     {
         // 向当前client_id发送数据 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-client.html
-        Gateway::sendToClient($client_id, "Hello $client_id\n");
+        Gateway::sendToClient($client_id, "Hello $client_id");
+        // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
+        Gateway::sendToAll("$client_id login");
     }
     
    /**
@@ -48,7 +50,7 @@ class Event
    public static function onMessage($client_id, $message)
    {
         // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
-        Gateway::sendToAll($message);
+        Gateway::sendToAll("$client_id said $message");
    }
    
    /**
@@ -58,6 +60,6 @@ class Event
    public static function onClose($client_id)
    {
        // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
-       GateWay::sendToAll("$client_id closed\n");
+       GateWay::sendToAll("$client_id logout");
    }
 }
