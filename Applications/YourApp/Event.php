@@ -28,8 +28,6 @@ class Event
      * 当客户端连接时触发
      * 如果业务不需此回调可以删除onConnect
      * 
-     * 注意：当使用WebSocket协议时不要在这里向当前client_id发送数据，
-     *           会导致当前client_id对应的连接WebSocket握手失败
      * @param int $client_id 连接id
      * @link http://gatewayworker-doc.workerman.net/gateway-worker-development/onconnect.html
      */

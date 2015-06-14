@@ -56,7 +56,7 @@ class Store
         '127.0.0.1:6379',
     );
     
-    // $driver为DRIVER_FILE时要配置此项，实际配置在下面几行
+    // $driver为DRIVER_FILE时要配置此项，实际配置在最下面一行
     public static $storePath = '';
 }
 
