@@ -382,7 +382,8 @@ class Gateway extends Worker
         // 如果有设置心跳，则定时执行
         if($this->pingInterval > 0)
         {
-            Timer::add($this->pingInterval, array($this, 'ping'));
+            $timer_interval = $this->pingNotResponseLimit > 0 ? $this->pingInterval/2 : $this->pingInterval;
+            Timer::add($timer_interval, array($this, 'ping'));
         }
     
         if(class_exists('\Protocols\GatewayProtocol/'))
