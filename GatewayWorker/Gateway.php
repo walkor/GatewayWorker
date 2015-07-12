@@ -607,18 +607,20 @@ class Gateway extends Worker
         foreach($this->_clientConnections as $connection)
         {
             // 上次发送的心跳还没有回复次数大于限定值就断开
-            if($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount >= $this->pingNotResponseLimit)
+            if($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount >= $this->pingNotResponseLimit*2)
             {
                 $connection->destroy();
                 continue;
             }
             // $connection->pingNotResponseCount为-1说明最近客户端有发来消息，则不给客户端发送心跳
-            if($connection->pingNotResponseCount++ >= 0)
+            $connection->pingNotResponseCount++;
+            if($this->pingData)
             {
-                if($this->pingData)
+                if($connection->pingNotResponseCount === 0 || ($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount%2 === 0))
                 {
-                    $connection->send($this->pingData);
+                    continue;
                 }
+                $connection->send($this->pingData);
             }
         }
     }
