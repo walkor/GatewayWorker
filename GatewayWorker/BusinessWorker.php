@@ -183,7 +183,7 @@ class BusinessWorker extends Worker
      */
     public function checkGatewayConnections()
     {
-        if(class_exists('\Protocols\GatewayProtocol/'))
+        if(!class_exists('\Protocols\GatewayProtocol'))
         {
             class_alias('\GatewayWorker\Protocols\GatewayProtocol', 'Protocols\GatewayProtocol');
         }
