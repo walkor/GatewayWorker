@@ -234,7 +234,10 @@ class BusinessWorker extends Worker
      */
     public function onError($connection, $error_no, $error_msg)
     {
-         $this->tryToDeleteGatewayAddress($connection->remoteAddress, $error_msg);
+         if($error_no === WORKERMAN_CONNECT_FAIL)
+         {
+             $this->tryToDeleteGatewayAddress($connection->remoteAddress, $error_msg);
+         }
     }
     
     /**
