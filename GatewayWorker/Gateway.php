@@ -537,6 +537,7 @@ class Gateway extends Worker
                 }
                 $client_connection->uids[$uid] = $uid;
                 $this->_uidConnections[$uid][$client_id] = $client_connection;
+                break;
                 // 发送数据给uid
             case GatewayProtocol::CMD_SEND_TO_UID:
                 $uid = $data['ext_data'];
@@ -547,6 +548,7 @@ class Gateway extends Worker
                         $connection->send($data['body']);
                     }
                 }
+                break;
             default :
                 $err_msg = "gateway inner pack err cmd=$cmd";
                 throw new \Exception($err_msg);
