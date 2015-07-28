@@ -45,7 +45,7 @@ haha
 
 手册
 =======
-http://gatewayworker-doc.workerman.net/
+http://www.workerman.net/gatewaydoc/
 
 使用GatewayWorker开发的项目
 =======
