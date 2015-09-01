@@ -77,11 +77,29 @@ class Store
                 ini_set('default_socket_timeout',-1);
                 self::$instance[$config_name] = new \GatewayWorker\Lib\StoreDriver\Redis();
                 // 只选择第一个ip作为服务端
-                $address = current(\Config\Store::$$config_name);
+                $storeConfig = \Config\Store::$$config_name;
+                $address = current($storeConfig);
                 list($ip, $port) = explode(':', $address);
                 $timeout = 1;
                 self::$instance[$config_name]->connect($ip, $port, $timeout);
                 self::$instance[$config_name]->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+            }else{
+                try{
+                    self::$instance[$config_name]->ping();
+                }catch (\RedisException $e){
+                    /**
+                     * 尝试重连一次redis
+                     * TODO 重连失败应该记录日志,且关闭对应的worker
+                     */
+                    self::$instance[$config_name] = new \GatewayWorker\Lib\StoreDriver\Redis();
+                    // 只选择第一个ip作为服务端
+                    $storeConfig = \Config\Store::$$config_name;
+                    $address = current($storeConfig);
+                    list($ip, $port) = explode(':', $address);
+                    $timeout = 1;
+                    self::$instance[$config_name]->connect($ip, $port, $timeout);
+                    self::$instance[$config_name]->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+                }
             }
             return self::$instance[$config_name];
         }

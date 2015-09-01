@@ -591,7 +591,10 @@ class TcpConnection extends ConnectionInterface
         {
             if($data !== null)
             {
-                $this->send($data);
+                /**
+                 * 参数调用出错
+                 */
+                $this->send($data,false);
             }
             $this->_status = self::STATUS_CLOSING;
         }
