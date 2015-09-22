@@ -148,7 +148,7 @@ class Gateway extends Worker
     {
         parent::__construct($socket_name, $context_option);
         
-        $this->router = array("\\GatewayWorker\\Gateway", 'routerRand');
+        $this->router = array("\\GatewayWorker\\Gateway", 'routerBind');
         
         $backrace = debug_backtrace();
         $this->_appInitPath = dirname($backrace[0]['file']);
@@ -284,6 +284,23 @@ class Gateway extends Worker
     public static function routerRand($worker_connections, $client_connection, $cmd, $buffer)
     {
         return $worker_connections[array_rand($worker_connections)];
+    }
+    
+    /**
+     * client_id与worker绑定
+     * @param array $worker_connections
+     * @param TcpConnection $client_connection
+     * @param int $cmd
+     * @param mixed $buffer
+     * @return TcpConnection
+     */
+    public static function routerBind($worker_connections, $client_connection, $cmd, $buffer)
+    {
+            if(!isset($client_connection->businessworker))
+            {
+                $client_connection->businessworker = $worker_connections[array_rand($worker_connections)];
+            }
+            return $client_connection->businessworker;
     }
     
     /**
