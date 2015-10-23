@@ -58,9 +58,3 @@ http://www.workerman.net/gatewaydoc/
 [Live demo](http://chat.workerman.net/)  
 [Source code](https://github.com/walkor/workerman-chat)  
 ![workerman-chat](http://www.workerman.net/img/workerman-chat.png)  
-
-## [web-msg-sender](https://github.com/walkor/web-msg-sender)  
-[Live demo send page](http://workerman.net:3333/)  
-[Live demo receive page](http://workerman.net/web-msg-sender.html)  
-[Source code](https://github.com/walkor/web-msg-sender)  
-![web-msg-sender](http://www.workerman.net/img/web-msg-sender.png)   
