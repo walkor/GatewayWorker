@@ -26,7 +26,13 @@ class Gateway
      * gateway实例
      * @var object
      */
-    protected static  $businessWorker = null;
+    protected static $businessWorker = null;
+
+    /**
+     * 注册中心地址
+     * @var string
+     */
+    public static $registerAddress = '127.0.0.1:1263';
     
    /**
     * 向所有客户端(或者client_id_array指定的客户端)广播消息
@@ -41,8 +47,19 @@ class Gateway
        
        if($client_id_array)
        {
-           $params = array_merge(array('N*'), $client_id_array);
-           $gateway_data['ext_data'] = call_user_func_array('pack', $params);
+           $data_array = array();
+           foreach($client_id_array as $client_id)
+           {
+              $address = Context::clientIdToAddress($client_id);
+              $data_array[long2ip($address['local_ip']).":{$address['local_port']}"][$address['connection_id']] = $address['connection_id'];
+           }
+           foreach($data_array as $addr=>$connection_id_list)
+           {
+              $the_gateway_data = $gateway_data;
+              $the_gateway_data['ext_data'] = call_user_func_array('pack', array_merge(array('N*'), $connection_id_list));
+              self::sendToGateway($addr, $the_gateway_data); 
+           }
+           return;
        }
        elseif(empty($client_id_array) && is_array($client_id_array))
        {
@@ -78,15 +95,19 @@ class Gateway
     */
    public static function isOnline($client_id)
    {
-       $address = Store::instance('gateway')->get('client_id-'.$client_id);
-       if(!$address)
+       $address_data = Context::clientIdToAddress($client_id);
+       $address = long2ip($address_data['local_ip']).":{$address_data['local_port']}";
+       if(isset(self::$businessWorker))
        {
-           return 0;
+           if(!isset(self::$businessWorker->gatewayConnections[$address]))
+           {
+               return 0;
+           }
        }
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = GatewayProtocol::CMD_IS_ONLINE;
-       $gateway_data['client_id'] = $client_id;
-       return self::sendUdpAndRecv($address, $gateway_data);
+       $gateway_data['connection_id'] = $address_data['connection_id'];
+       return (int)self::sendUdpAndRecv($address, $gateway_data);
    }
    
    /**
@@ -98,17 +119,33 @@ class Gateway
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = GatewayProtocol::CMD_GET_ONLINE_STATUS;
        $gateway_buffer = GatewayProtocol::encode($gateway_data);
-       
-       $all_addresses = Store::instance('gateway')->get('GLOBAL_GATEWAY_ADDRESS');
-       $client_array = $status_data = array();
+      
+       if(isset(self::$businessWorker))
+       {
+           $all_addresses = self::$businessWorker->getAllGatewayAddresses();
+           if(empty($all_addresses))
+           {
+               throw new \Exception('businessWorker::getAllGatewayAddresses return empty');
+           }
+       }
+       else
+       {
+           $all_addresses = self::getAllGatewayAddressesFromRegister();
+           if(empty($all_addresses))
+           {
+               return array();
+           }
+       }
+       $client_array = $status_data = $client_address_map = array();
        // 批量向所有gateway进程发送CMD_GET_ONLINE_STATUS命令
        foreach($all_addresses as $address)
        {
            $client = stream_socket_client("udp://$address", $errno, $errmsg);
            if(strlen($gateway_buffer) === stream_socket_sendto($client, $gateway_buffer))
            {
-               $client_id = (int) $client;
-               $client_array[$client_id] = $client;
+               $socket_id = (int) $client;
+               $client_array[$socket_id] = $client;
+               $client_address_map[$socket_id] = explode(':',$address);
            }
        }
        // 超时1秒
@@ -123,13 +160,19 @@ class Gateway
            {
                foreach($read as $client)
                {
+                   $socket_id = (int)$client;
+                   $local_ip = ip2long($client_address_map[$socket_id][0]);
+                   $local_port = $client_address_map[$socket_id][1];
                    // udp
-                   $data = json_decode(fread($client, 65535), true);
+                   $data = json_decode(stream_socket_recvfrom($client, 65535), true);
                    if($data)
                    {
-                       $status_data = array_merge($status_data, $data);
+                       foreach($data as $connection_id)
+                       {
+                           $status_data[] = Context::addressToClientId($local_ip, $local_port, $connection_id);
+                       }
                    }
-                   unset($client_array[$client]);
+                   unset($client_array[$socket_id]);
                }
            }
            if(microtime(true) - $time_start > $time_out)
@@ -154,12 +197,9 @@ class Gateway
        // 不是发给当前用户则使用存储中的地址
        else
        {
-           $address = Store::instance('gateway')->get('client_id-'.$client_id);
-           if(!$address)
-           {
-               return false;
-           }
-           return self::kickAddress($address, $client_id);
+           $address_data = Context::clientIdToAddress($client_id);
+           $address = long2ip($address_data['local_ip']).":{$address_data['local_port']}";
+           return self::kickAddress($address, $address_data['connection_id']);
        }
    }
    
@@ -169,7 +209,11 @@ class Gateway
     */
    public static function closeCurrentClient()
    {
-       return self::kickAddress(Context::$local_ip.':'.Context::$local_port, Context::$client_id);
+       if(!Context::$connection_id)
+       {
+           throw new \Exception('closeCurrentClient can not be called in async context');
+       }
+       return self::kickAddress(long2ip(Context::$local_ip).':'.Context::$local_port, Context::$connection_id);
    }
    
    /**
@@ -195,11 +239,11 @@ class Gateway
        
        if(!is_array($uid))
        {
-			$uid = array($uid);
+          $uid = array($uid);
        }
         
        $gateway_data['ext_data'] = json_encode($uid);
-        
+       
        return self::sendToAllGateway($gateway_data);
    }
    
@@ -235,19 +279,18 @@ class Gateway
        // 如果是发给当前用户则直接获取上下文中的地址
        if($client_id === Context::$client_id || $client_id === null)
        {
-           $address = Context::$local_ip.':'.Context::$local_port;
+           $address = long2ip(Context::$local_ip).':'.Context::$local_port;
+           $connection_id = Context::$connection_id;
        }
        else
        {
-           $address = Store::instance('gateway')->get('client_id-'.$client_id);
-           if(!$address)
-           {
-               return false;
-           }
+           $address_data = Context::clientIdToAddress($client_id);
+           $address = long2ip($address_data['local_ip']).":{$address_data['local_port']}";
+           $connection_id = $address_data['connection_id'];
        }
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = $cmd;
-       $gateway_data['client_id'] = $client_id ? $client_id : Context::$client_id;
+       $gateway_data['connection_id'] = $connection_id;
        $gateway_data['body'] = $message;
        if(!empty($ext_data))
        {
@@ -275,7 +318,7 @@ class Gateway
            // 1秒超时
            stream_set_timeout($client, 1);
            // 读udp数据
-           $data = fread($client, 655350);
+           $data = stream_socket_recvfrom($client, 655350);
            // 返回结果
            return json_decode($data, true);
        }
@@ -324,10 +367,10 @@ class Gateway
        // 运行在其它环境中，使用udp向worker发送数据
        else
        {
-           $all_addresses = Store::instance('gateway')->get('GLOBAL_GATEWAY_ADDRESS');
+           $all_addresses = self::getAllGatewayAddressesFromRegister();
            if(!$all_addresses)
            {
-               throw new \Exception('GLOBAL_GATEWAY_ADDRESS is ' . var_export($all_addresses, true));
+               throw new \Exception('Gateway::getAllGatewayAddressesFromRegister() with registerAddress:' . self::$registerAddress . '  return ' . var_export($all_addresses, true));
            }
            foreach($all_addresses as $address)
            {
@@ -344,11 +387,11 @@ class Gateway
     * @param string $message
     * @param int $client_id
     */
-   protected  static function kickAddress($address, $client_id)
+   protected  static function kickAddress($address, $connection_id)
    {
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = GatewayProtocol::CMD_KICK;
-       $gateway_data['client_id'] = $client_id;
+       $gateway_data['connection_id'] = $connection_id;
        return self::sendToGateway($address, $gateway_data);
    }
    
@@ -360,7 +403,27 @@ class Gateway
    {
        self::$businessWorker = $business_worker_instance;
    }
- 
+
+   /**
+    * 获取通过注册中心获取所有gateway通讯地址
+    * @return array
+    */
+   protected static function getAllGatewayAddressesFromRegister()
+   {
+       $client = stream_socket_client('tcp://'.self::$registerAddress, $errno, $errmsg, 1);
+       if(!$client)
+       {
+           throw new \Exception('Can not connect to tcp://' . self::$registerAddress . ' ' .$errmsg);
+       }
+       fwrite($client, '{"event":"worker_connect"}');
+       stream_set_timeout($client, 1);
+       $ret = fread($client, 65535);
+       if(!$ret || !$data = json_decode($ret, true))
+       {
+           throw new \Exception('getAllGatewayAddressesFromRegister fail. tcp://' . self::$registerAddress . ' return '.var_export($ret, true));
+       }
+       return $data['addresses'];
+   } 
 }
 
 if(!class_exists('\Protocols\GatewayProtocol'))

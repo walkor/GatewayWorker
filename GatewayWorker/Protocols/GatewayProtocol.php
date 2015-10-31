@@ -19,18 +19,19 @@ namespace GatewayWorker\Protocols;
  * struct GatewayProtocol
  * {
  *     unsigned int        pack_len,
- *     unsigned char     cmd,//命令字
+ *     unsigned char       cmd,//命令字
  *     unsigned int        local_ip,
- *     unsigned short    local_port,
+ *     unsigned short      local_port,
  *     unsigned int        client_ip,
- *     unsigned short    client_port,
- *     unsigned int        client_id,
- *     unsigned char      flag,
+ *     unsigned short      client_port,
+ *     unsigned int        connection_id,
+ *     unsigned char       flag,
+ *     unsigned short      gateway_port,
  *     unsigned int        ext_len,
- *     char[ext_len]        ext_data,
+ *     char[ext_len]       ext_data,
  *     char[pack_length-HEAD_LEN] body//包体
  * }
- * 
+ * NCNnNnNCnN
  */
 class GatewayProtocol
 {
@@ -74,16 +75,17 @@ class GatewayProtocol
      * 包头长度
      * @var integer
      */
-    const HEAD_LEN = 26;
+    const HEAD_LEN = 28;
     
     public static $empty = array(
         'cmd' => 0,
-        'local_ip' => '0.0.0.0',
+        'local_ip' => 0,
         'local_port' => 0,
-        'client_ip' => '0.0.0.0',
+        'client_ip' => 0,
         'client_port' => 0,
-        'client_id' => 0,
+        'connection_id' => 0,
         'flag' => 0,
+        'gateway_port' => 0,
         'ext_data' => '',
         'body' => '',
     );
@@ -118,11 +120,12 @@ class GatewayProtocol
         }
         $ext_len = strlen($data['ext_data']);
         $package_len = self::HEAD_LEN + $ext_len + strlen($data['body']);
-        return pack("NCNnNnNNC",  $package_len,
-                        $data['cmd'], ip2long($data['local_ip']), 
-                        $data['local_port'], ip2long($data['client_ip']), 
-                        $data['client_port'], $data['client_id'],
-                       $ext_len, $flag) . $data['ext_data'] . $data['body'];
+        return pack("NCNnNnNCnN", $package_len,
+                       $data['cmd'], $data['local_ip'],
+                       $data['local_port'], $data['client_ip'],
+                       $data['client_port'], $data['connection_id'], 
+                       $flag, $data['gateway_port'], 
+                       $ext_len) . $data['ext_data'] . $data['body'];
     }
     
     /**
@@ -132,9 +135,9 @@ class GatewayProtocol
      */    
     public static function decode($buffer)
     {
-        $data = unpack("Npack_len/Ccmd/Nlocal_ip/nlocal_port/Nclient_ip/nclient_port/Nclient_id/Next_len/Cflag", $buffer);
-        $data['local_ip'] = long2ip($data['local_ip']);
-        $data['client_ip'] = long2ip($data['client_ip']);
+        $data = unpack("Npack_len/Ccmd/Nlocal_ip/nlocal_port/Nclient_ip/nclient_port/Nconnection_id/Cflag/ngateway_port/Next_len", $buffer);
+        $data['local_ip'] = $data['local_ip'];
+        $data['client_ip'] = $data['client_ip'];
         if($data['ext_len'] > 0)
         {
             $data['ext_data'] = substr($buffer, self::HEAD_LEN, $data['ext_len']);
