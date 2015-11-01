@@ -426,7 +426,7 @@ class Gateway extends Worker
         $cmd = $data['cmd'];
         switch($cmd)
         {
-            case Gateway::CMD_WORKER_CONNECT:
+            case GatewayProtocol::CMD_WORKER_CONNECT:
                 $connection->remoteAddress = $connection->getRemoteIp().':'.$connection->getRemotePort();
                 $this->_workerConnections[$connection->remoteAddress] = $connection;
                 return;
