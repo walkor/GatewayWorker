@@ -362,6 +362,27 @@ class Gateway
    }
    
    /**
+    * 向group发送
+    * @param int/string/array $group
+    * @param string $message
+    */
+   public static function sendToGroup($group, $message)
+   {
+       $gateway_data = GatewayProtocol::$empty;
+       $gateway_data['cmd'] = GatewayProtocol::CMD_SEND_TO_GROUP;
+       $gateway_data['body'] = $message;
+        
+       if(!is_array($group))
+       {
+           $group = array($group);
+       }
+   
+       $gateway_data['ext_data'] = json_encode($group);
+        
+       return self::sendToAllGateway($gateway_data);
+   }
+   
+   /**
     * 更新session,框架自动调用，开发者不要调用
     * @param int $client_id
     * @param string $session_str

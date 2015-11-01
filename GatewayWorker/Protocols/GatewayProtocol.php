@@ -71,11 +71,8 @@ class GatewayProtocol
     // 向uid发送数据
     const CMD_SEND_TO_UID = 14;
     
-    // 获取绑定的clientid
-    const CMD_GET_BINDED_CLIENTID = 15;
-    
     // 根据uid获取绑定的clientid
-    const CMD_GET_CLIENT_ID_BY_UID = 16;
+    const CMD_GET_CLIENT_ID_BY_UID = 15;
     
     // 加入组
     const CMD_JOIN_GROUP = 20;
