@@ -182,14 +182,17 @@ class Gateway
        {
            foreach($buffer_array as $local_port=>$buffer)
            {
-               $count = intval($buffer);
-               if($count)
+               $connection_id_array = json_decode(rtrim($buffer), true);
+               if($connection_id_array)
                {
-                   $total_count += $count;
+                   foreach($connection_id_array as $connection_id)
+                   {
+                       $client_list[] = Context::addressToClientId($local_ip, $local_port, $connection_id);
+                   }
                }
            }
        }
-       return $total_count;
+       return $client_list;
    }
    
    protected static function getBufferFromAllGateway($gateway_data)
@@ -211,7 +214,7 @@ class Gateway
                return array();
            }
        }
-       $client_array = $status_data = $client_address_map = array();
+       $client_array = $status_data = $client_address_map = $receive_buffer_array = array();
        // 批量向所有gateway进程发送CMD_GET_ONLINE_STATUS命令
        foreach($all_addresses as $address)
        {
@@ -221,12 +224,12 @@ class Gateway
                $socket_id = (int) $client;
                $client_array[$socket_id] = $client;
                $client_address_map[$socket_id] = explode(':',$address);
+               $receive_buffer_array[$socket_id] = '';
            }
        }
        // 超时1秒
        $timeout = 1;
        $time_start = microtime(true);
-       $receive_buffer_array = array();
        // 批量接收请求
        while(count($client_array) > 0)
        {

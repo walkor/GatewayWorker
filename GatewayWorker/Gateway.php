@@ -643,7 +643,10 @@ class Gateway extends Worker
     public function onWorkerClose($connection)
     {
         //$this->log("{$connection->remoteAddress} CLOSE INNER_CONNECTION\n");
-        unset($this->_workerConnections[$connection->remoteAddress]);
+        if(isset($connection->remoteAddress))
+        {
+            unset($this->_workerConnections[$connection->remoteAddress]);
+        }
     }
     
     /**
