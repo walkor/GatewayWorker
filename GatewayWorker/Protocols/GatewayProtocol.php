@@ -57,7 +57,7 @@ class GatewayProtocol
     const CMD_UPDATE_SESSION = 9;
     
     // 获取在线状态
-    const CMD_GET_ONLINE_STATUS = 10;
+    const CMD_GET_ALL_CLIENT_INFO = 10;
     
     // 判断是否在线
     const CMD_IS_ONLINE = 11;
@@ -65,8 +65,35 @@ class GatewayProtocol
     // client_id绑定到uid
     const CMD_BIND_UID = 12;
     
+    // 解绑
+    const CMD_UNBIND_UID = 13;
+    
     // 向uid发送数据
-    const CMD_SEND_TO_UID = 13;
+    const CMD_SEND_TO_UID = 14;
+    
+    // 获取绑定的clientid
+    const CMD_GET_BINDED_CLIENTID = 15;
+    
+    // 根据uid获取绑定的clientid
+    const CMD_GET_CLIENT_ID_BY_UID = 16;
+    
+    // 加入组
+    const CMD_JOIN_GROUP = 20;
+    
+    // 离开组
+    const CMD_LEAVE_GROUP = 21;
+    
+    // 向组成员发消息
+    const CMD_SEND_TO_GROUP = 22;
+    
+    // 获取组成员
+    const CMD_GET_CLINET_INFO_BY_GROUP = 23;
+    
+    // 获取组成员数
+    const CMD_GET_CLIENT_COUNT_BY_GROUP = 24;
+    
+    // worker连接gateway事件
+    const CMD_WORKER_CONNECT = 200;
     
     // 包体是标量
     const FLAG_BODY_IS_SCALAR = 0x01;

@@ -16,9 +16,10 @@ namespace GatewayWorker\Lib;
 /**
  * 数据发送相关
  */
-use \Protocols\GatewayProtocol;
+//use \Protocols\GatewayProtocol;
 use \GatewayWorker\Lib\Store;
 use \GatewayWorker\Lib\Context;
+use GatewayWorker\Protocols\GatewayProtocol;
 
 class Gateway
 {
@@ -107,19 +108,94 @@ class Gateway
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = GatewayProtocol::CMD_IS_ONLINE;
        $gateway_data['connection_id'] = $address_data['connection_id'];
-       return (int)self::sendUdpAndRecv($address, $gateway_data);
+       return (int)self::sendAndRecv($address, $gateway_data);
    }
    
    /**
-    * 获取在线状态，目前返回一个在线client_id数组
+    * 获取在线状态，目前返回一个在线client_id数组,client_id为key
     * @return array
     */
-   public static function getOnlineStatus()
+   public static function getALLClientInfo($group = null)
    {
        $gateway_data = GatewayProtocol::$empty;
-       $gateway_data['cmd'] = GatewayProtocol::CMD_GET_ONLINE_STATUS;
+       if(!$group)
+       {
+           $gateway_data['cmd'] = GatewayProtocol::CMD_GET_ALL_CLIENT_INFO;
+       }
+       else
+       {
+           $gateway_data['cmd'] = GatewayProtocol::CMD_GET_CLINET_INFO_BY_GROUP;
+           $gateway_data['ext_data'] = $group;
+       }
+       $status_data = array();
+       $all_buffer_array = self::getBufferFromAllGateway($gateway_data);
+       foreach($all_buffer_array as $local_ip=>$buffer_array)
+       {
+           foreach($buffer_array as $local_port=>$buffer)
+           {
+               $data = json_decode(rtrim($buffer), true);
+               if($data)
+               {
+                   foreach($data as $connection_id=>$session_buffer)
+                   {
+                       $status_data[Context::addressToClientId($local_ip, $local_port, $connection_id)] = $session_buffer ? Context::sessionDecode($session_buffer) : array();
+                   }
+               }
+           }
+       }
+       return $status_data;
+   }
+   
+   public static function getClientInfoByGroup($group)
+   {
+       return self::getALLClientInfo($group);
+   }
+   
+   public static function getClientCountByGroup($group)
+   {
+       $gateway_data = GatewayProtocol::$empty;
+       $gateway_data['cmd'] = GatewayProtocol::CMD_GET_CLIENT_COUNT_BY_GROUP;
+       $gateway_data['ext_data'] = $group;
+       $total_count = 0;
+       $all_buffer_array = self::getBufferFromAllGateway($gateway_data);
+       foreach($all_buffer_array as $local_ip=>$buffer_array)
+       {
+           foreach($buffer_array as $local_port=>$buffer)
+           {
+               $count = intval($buffer);
+               if($count)
+               {
+                   $total_count += $count;
+               }
+           }
+       }
+       return $total_count;
+   }
+   
+   public static function getClientIDByUid($uid)
+   {
+       $gateway_data = GatewayProtocol::$empty;
+       $gateway_data['cmd'] = GatewayProtocol::CMD_GET_CLIENT_ID_BY_UID;
+       $gateway_data['ext_data'] = $uid;
+       $client_list = array();
+       $all_buffer_array = self::getBufferFromAllGateway($gateway_data);
+       foreach($all_buffer_array as $local_ip=>$buffer_array)
+       {
+           foreach($buffer_array as $local_port=>$buffer)
+           {
+               $count = intval($buffer);
+               if($count)
+               {
+                   $total_count += $count;
+               }
+           }
+       }
+       return $total_count;
+   }
+   
+   protected static function getBufferFromAllGateway($gateway_data)
+   {
        $gateway_buffer = GatewayProtocol::encode($gateway_data);
-      
        if(isset(self::$businessWorker))
        {
            $all_addresses = self::$businessWorker->getAllGatewayAddresses();
@@ -140,8 +216,8 @@ class Gateway
        // 批量向所有gateway进程发送CMD_GET_ONLINE_STATUS命令
        foreach($all_addresses as $address)
        {
-           $client = stream_socket_client("udp://$address", $errno, $errmsg);
-           if(strlen($gateway_buffer) === stream_socket_sendto($client, $gateway_buffer))
+           $client = stream_socket_client("tcp://$address", $errno, $errmsg);
+           if($client && strlen($gateway_buffer) === stream_socket_sendto($client, $gateway_buffer))
            {
                $socket_id = (int) $client;
                $client_array[$socket_id] = $client;
@@ -149,38 +225,47 @@ class Gateway
            }
        }
        // 超时1秒
-       $time_out = 1;
+       $timeout = 1;
        $time_start = microtime(true);
+       $receive_buffer_array = array();
        // 批量接收请求
        while(count($client_array) > 0)
        {
            $write = $except = array();
            $read = $client_array;
-           if(@stream_select($read, $write, $except, $time_out))
+           if(@stream_select($read, $write, $except, $timeout))
            {
                foreach($read as $client)
                {
                    $socket_id = (int)$client;
-                   $local_ip = ip2long($client_address_map[$socket_id][0]);
-                   $local_port = $client_address_map[$socket_id][1];
-                   // udp
-                   $data = json_decode(stream_socket_recvfrom($client, 65535), true);
-                   if($data)
+                   $buffer = stream_socket_recvfrom($client, 65535);
+                   if($buffer !== '' && $buffer !== false)
                    {
-                       foreach($data as $connection_id)
+                       $receive_buffer_array[$socket_id] .= $buffer;
+                       if($receive_buffer_array[$socket_id][strlen($receive_buffer_array[$socket_id])-1] === "\n")
                        {
-                           $status_data[] = Context::addressToClientId($local_ip, $local_port, $connection_id);
+                           unset($client_array[$socket_id]);
                        }
                    }
-                   unset($client_array[$socket_id]);
+                   elseif(feof($client))
+                   {
+                       unset($client_array[$socket_id]);
+                   }
                }
            }
-           if(microtime(true) - $time_start > $time_out)
+           if(microtime(true) - $time_start > $timeout)
            {
                break;
            }
        }
-       return $status_data;
+       $format_buffer_array = array();
+       foreach($receive_buffer_array as  $socket_id=>$buffer)
+       {
+           $local_ip = ip2long($client_address_map[$socket_id][0]);
+           $local_port = $client_address_map[$socket_id][1];
+           $format_buffer_array[$local_ip][$local_port] = $buffer;
+       }
+       return $format_buffer_array;
    }
    
    /**
@@ -301,30 +386,55 @@ class Gateway
    }
    
    /**
-    * 发送udp数据并返回
+    * 发送数据并返回
     * @param int $address
     * @param string $message
     * @return boolean
     */
-   protected static function sendUdpAndRecv($address , $data)
+   protected static function sendAndRecv($address , $data)
    {
        $buffer = GatewayProtocol::encode($data);
-       // 非workerman环境，使用udp发送数据
-       $client = stream_socket_client("udp://$address", $errno, $errmsg);
-       if(strlen($buffer) == stream_socket_sendto($client, $buffer))
+       $client = stream_socket_client("tcp://$address", $errno, $errmsg);
+       if(!$client)
        {
+           throw new \Exception("can not connect to tcp://$address $errmsg");
+       }
+       if(strlen($buffer) === stream_socket_sendto($client, $buffer))
+       {
+           $timeout = 1;
            // 阻塞读
            stream_set_blocking($client, 1);
            // 1秒超时
            stream_set_timeout($client, 1);
-           // 读udp数据
-           $data = stream_socket_recvfrom($client, 655350);
+           $all_buffer = '';
+           $time_start = microtime(true);
+           while(1)
+           {
+               $buf = stream_socket_recvfrom($client, 655350);
+               if($buf !== '' && $buf !== false)
+               {
+                   $all_buffer .= $buf;
+               }
+               else
+               {
+                   if(feof($client))
+                   {
+                       throw new \Exception("connection close tcp://$address");
+                   }
+                   continue;
+               }
+               // 回复的数据都是以\n结尾
+               if(($all_buffer && $all_buffer[strlen($all_buffer)-1] === "\n") || microtime(true) - $time_start > $timeout)
+               {
+                   break;
+               }
+           }
            // 返回结果
-           return json_decode($data, true);
+           return json_decode(rtrim($all_buffer), true);
        }
        else
        {
-           throw new \Exception("sendUdpAndRecv($address, \$bufer) fail ! Can not send UDP data!", 502);
+           throw new \Exception("sendAndRecv($address, \$bufer) fail ! Can not send data!", 502);
        }
    }
    

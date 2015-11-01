@@ -95,9 +95,15 @@ class Gateway extends Worker
     protected $_clientConnections = array();
     
     /**
-     * uid 到client_id的映射，一对多关系
+     * uid 到connection的映射，一对多关系
      */
     protected $_uidConnections = array();
+    
+    /**
+     * group 到connection的映射，一对多关系
+     * @var array
+     */
+    protected $_groupConnections = array();
     
     /**
      * 保存所有worker的内部连接的connection对象
@@ -110,12 +116,6 @@ class Gateway extends Worker
      * @var Worker
      */
     protected $_innerTcpWorker = null;
-    
-    /**
-     * gateway内部监听udp数据的worker
-     * @var Worker
-     */
-    protected $_innerUdpWorker = null;
     
     /**
      * 当worker启动时
@@ -332,14 +332,24 @@ class Gateway extends Worker
         }
         unset($this->_clientConnections[$connection->id]);
         // 清理uid数据
-        if(!empty($connection->uids))
+        if($connection->uid)
         {
-            foreach($connection->uids as $uid)
+            $uid = $connection->uid;
+            unset($this->_uidConnections[$uid][$connection->id]);
+            if(empty($this->_uidConnections[$uid]))
             {
-                unset($this->_uidConnections[$uid][$connection->id]);
-                if(empty($this->_uidConnections[$uid]))
+                unset($this->_uidConnections[$uid]);
+            }
+        }
+        // 清理group数据
+        if(!empty($connection->groups))
+        {
+            foreach($connection->groups as $group)
+            {
+                unset($this->_groupConnections[$group][$connection->id]);
+                if(empty($this->_groupConnections[$group]))
                 {
-                    unset($this->_uidConnections[$uid]);
+                    unset($this->_groupConnections[$group]);
                 }
             }
         }
@@ -373,16 +383,12 @@ class Gateway extends Worker
         // 初始化gateway内部的监听，用于监听worker的连接已经连接上发来的数据
         $this->_innerTcpWorker = new Worker("GatewayProtocol://{$this->lanIp}:{$this->lanPort}");
         $this->_innerTcpWorker->listen();
-        $this->_innerUdpWorker = new Worker("GatewayProtocol://{$this->lanIp}:{$this->lanPort}");
-        $this->_innerUdpWorker->transport = 'udp';
-        $this->_innerUdpWorker->listen();
     
         // 重新设置自动加载根目录
         Autoloader::setRootPath($this->_appInitPath);
         
         // 设置内部监听的相关回调
         $this->_innerTcpWorker->onMessage = array($this, 'onWorkerMessage');
-        $this->_innerUdpWorker->onMessage = array($this, 'onWorkerMessage');
         
         $this->_innerTcpWorker->onConnect = array($this, 'onWorkerConnect');
         $this->_innerTcpWorker->onClose = array($this, 'onWorkerClose');
@@ -403,12 +409,10 @@ class Gateway extends Worker
      */
     public function onWorkerConnect($connection)
     {
-        $connection->remoteAddress = $connection->getRemoteIp().':'.$connection->getRemotePort();
-        if(TcpConnection::$defaultMaxSendBufferSize == $connection->maxSendBufferSize)
+        if(TcpConnection::$defaultMaxSendBufferSize === $connection->maxSendBufferSize)
         {
-            $connection->maxSendBufferSize = 10*1024*1024;
+            $connection->maxSendBufferSize = 50*1024*1024;
         }
-        $this->_workerConnections[$connection->remoteAddress] = $connection;
     }
     
     /**
@@ -422,26 +426,30 @@ class Gateway extends Worker
         $cmd = $data['cmd'];
         switch($cmd)
         {
+            case Gateway::CMD_WORKER_CONNECT:
+                $connection->remoteAddress = $connection->getRemoteIp().':'.$connection->getRemotePort();
+                $this->_workerConnections[$connection->remoteAddress] = $connection;
+                return;
             // 向某客户端发送数据，Gateway::sendToClient($client_id, $message);
             case GatewayProtocol::CMD_SEND_TO_ONE:
                 if(isset($this->_clientConnections[$data['connection_id']]))
                 {
                     $this->_clientConnections[$data['connection_id']]->send($data['body']);
                 }
-                break;
+                return;
                 // 关闭客户端连接，Gateway::closeClient($client_id);
             case GatewayProtocol::CMD_KICK:
                 if(isset($this->_clientConnections[$data['connection_id']]))
                 {
                     $this->_clientConnections[$data['connection_id']]->destroy();
                 }
-                break;
+                return;
                 // 广播, Gateway::sendToAll($message, $client_id_array)
             case GatewayProtocol::CMD_SEND_TO_ALL:
                 // $client_id_array不为空时，只广播给$client_id_array指定的客户端
                 if($data['ext_data'])
                 {
-                    $client_id_array = unpack('N*', $data['ext_data']);
+                    $connection_id_array = unpack('N*', $data['ext_data']);
                     foreach($connection_id_array as $connection_id)
                     {
                         if(isset($this->_clientConnections[$connection_id]))
@@ -458,23 +466,27 @@ class Gateway extends Worker
                         $client_connection->send($data['body']);
                     }
                 }
-                break;
+                return;
                 // 更新客户端session
             case GatewayProtocol::CMD_UPDATE_SESSION:
                 if(isset($this->_clientConnections[$data['connection_id']]))
                 {
                     $this->_clientConnections[$data['connection_id']]->session = $data['ext_data'];
                 }
-                break;
+                return;
                 // 获得客户端在线状态 Gateway::getOnlineStatus()
-            case GatewayProtocol::CMD_GET_ONLINE_STATUS:
-                $online_status = json_encode(array_keys($this->_clientConnections));
-                $connection->send($online_status);
-                break;
+            case GatewayProtocol::CMD_GET_ALL_CLIENT_INFO:
+                $client_info_array = array();
+                foreach($this->_clientConnections as $connection_id=>$client_connection)
+                {
+                    $client_info_array[$connection_id] = $client_connection->session;
+                }
+                $connection->send(json_encode($client_info_array)."\n", true);
+                return;
                 // 判断某个client_id是否在线 Gateway::isOnline($client_id)
             case GatewayProtocol::CMD_IS_ONLINE:
-                $connection->send((int)isset($this->_clientConnections[$data['connection_id']]));
-                break;
+                $connection->send(((int)isset($this->_clientConnections[$data['connection_id']]))."\n", true);
+                return;
                 // 将client_id与uid绑定
             case GatewayProtocol::CMD_BIND_UID:
                 $uid = $data['ext_data'];
@@ -489,13 +501,37 @@ class Gateway extends Worker
                     return;
                 }
                 $client_connection = $this->_clientConnections[$connection_id];
-                if(!isset($client_connection->uids))
+                if(isset($client_connection->uid))
                 {
-                    $client_connection->uids = array();
+                    $current_uid = $client_connection->uid;
+                    unset($this->_uidConnections[$current_uid][$connection_id]);
+                    if(empty($this->_uidConnections[$current_uid]))
+                    {
+                        unset($this->_uidConnections[$current_uid]);
+                    }
                 }
-                $client_connection->uids[$uid] = $uid;
+                $client_connection->uid = $uid;
                 $this->_uidConnections[$uid][$connection_id] = $client_connection;
-                break;
+                return;
+            case GatewayProtocol::CMD_UNBIND_UID:
+                $connection_id = $data['connection_id'];
+                if(!isset($this->_clientConnections[$connection_id]))
+                {
+                    return;
+                }
+                $client_connection = $this->_clientConnections[$connection_id];
+                if(isset($client_connection->uid))
+                {
+                    $current_uid = $client_connection->uid;
+                    unset($this->_uidConnections[$current_uid][$connection_id]);
+                    if(empty($this->_uidConnections[$current_uid]))
+                    {
+                        unset($this->_uidConnections[$current_uid]);
+                    }
+                    $client_connection->uid_info = '';
+                    $client_connection->uid = null;
+                }
+                return;
                 // 发送数据给uid
             case GatewayProtocol::CMD_SEND_TO_UID:
                 $uid_array = json_decode($data['ext_data'],true);
@@ -509,7 +545,91 @@ class Gateway extends Worker
                         }
                     }
                 }
-                break;
+                return;
+            case GatewayProtocol::CMD_JOIN_GROUP:
+                $group = $data['ext_data'];
+                if(empty($group))
+                {
+                    echo "group empty" . var_export($group, true);
+                    return;
+                }
+                $connection_id = $data['connection_id'];
+                if(!isset($this->_clientConnections[$connection_id]))
+                {
+                    return;
+                }
+                $client_connection = $this->_clientConnections[$connection_id];
+                if(!isset($client_connection->groups))
+                {
+                    $client_connection->groups = array();
+                }
+                $client_connection->groups[$group] = $group;
+                $this->_groupConnections[$group][$connection_id] = $client_connection;
+                return;
+            case GatewayProtocol::CMD_LEAVE_GROUP:
+                $group = $data['ext_data'];
+                if(empty($group))
+                {
+                    echo "leave group empty" . var_export($group, true);
+                    return;
+                }
+                $connection_id = $data['connection_id'];
+                if(!isset($this->_clientConnections[$connection_id]))
+                {
+                    return;
+                }
+                $client_connection = $this->_clientConnections[$connection_id];
+                if(!isset($client_connection->groups[$group]))
+                {
+                    return;
+                }
+                unset($client_connection->groups[$group], $this->_groupConnections[$group][$connection_id]);
+                return;
+            case GatewayProtocol::CMD_SEND_TO_GROUP:
+                $group_array = json_decode($data['ext_data'],true);
+                foreach($group_array as $group)
+                {
+                    if(!empty($this->_groupConnections[$group]))
+                    {
+                        foreach($this->_groupConnections[$group] as $connection)
+                        {
+                            $connection->send($data['body']);
+                        }
+                    }
+                }
+                return;
+            case GatewayProtocol::CMD_GET_CLINET_INFO_BY_GROUP:
+                $group = $data['ext_data'];
+                if(!isset($this->_groupConnections[$group]))
+                {
+                    $connection->send("[]\n", true);
+                    return;
+                }
+                $client_info_array = array();
+                foreach($this->_groupConnections[$group] as $connection_id=>$client_connection)
+                {
+                    $client_info_array[$connection_id] = $client_connection->session;
+                }
+                $connection->send(json_encode($client_info_array)."\n", true);
+                return;
+            case GatewayProtocol::CMD_GET_CLIENT_COUNT_BY_GROUP:
+                $group = $data['ext_data'];
+                if(!isset($this->_groupConnections[$group]))
+                {
+                    $connection->send("0\n", true);
+                    return;
+                }
+                $connection->send(count($this->_groupConnections[$group])."\n", true);
+                return;
+            case GatewayProtocol::CMD_GET_CLIENT_ID_BY_UID:
+                $uid = $data['ext_data'];
+                if(empty($this->_uidConnections[$uid]))
+                {
+                    $connection->send("[]\n", true);
+                    return;
+                }
+                $connection->send(json_encode(array_keys($this->_uidConnections[$uid]))."\n", true);
+                return;
             default :
                 $err_msg = "gateway inner pack err cmd=$cmd";
                 throw new \Exception($err_msg);

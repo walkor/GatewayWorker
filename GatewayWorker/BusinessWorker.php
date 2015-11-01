@@ -250,8 +250,11 @@ class BusinessWorker extends Worker
             $gateway_connection->onError = array($this, 'onGatewayError');
             if(TcpConnection::$defaultMaxSendBufferSize == $gateway_connection->maxSendBufferSize)
             {
-                $gateway_connection->maxSendBufferSize = 10*1024*1024;
+                $gateway_connection->maxSendBufferSize = 50*1024*1024;
             }
+            $gateway_data = GatewayProtocol::$empty;
+            $gateway_data['cmd'] = GatewayProtocol::CMD_WORKER_CONNECT;
+            $gateway_connection->send($gateway_data);
             $gateway_connection->connect();
             $this->_connectingGatewayAddresses[$addr] = $addr;
         }
