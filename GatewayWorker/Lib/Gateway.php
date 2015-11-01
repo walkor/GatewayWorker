@@ -311,6 +311,36 @@ class Gateway
    }
    
    /**
+    * 将client_id与uid绑定
+    * @param int $client_id
+    * @param int/string $uid
+    */
+   public static function unbindUid($client_id, $uid)
+   {
+       return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UNBIND_UID, '', $uid);
+   }
+   
+   /**
+    * 将client_id加入组
+    * @param int $client_id
+    * @param int/string $group
+    */
+   public static function joinGroup($client_id, $group)
+   {
+       return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_JOIN_GROUP, '', $group);
+   }
+   
+   /**
+    * 将client_id离开组
+    * @param int $client_id
+    * @param int/string $group
+    */
+   public static function leaveGroup($client_id, $group)
+   {
+       return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_LEAVE_GROUP, '', $group);
+   }
+   
+   /**
     * 向所有uid发送
     * @param int/string/array $uid
     * @param unknown_type $message
