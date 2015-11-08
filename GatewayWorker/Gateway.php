@@ -332,7 +332,7 @@ class Gateway extends Worker
         }
         unset($this->_clientConnections[$connection->id]);
         // 清理uid数据
-        if($connection->uid)
+        if(!empty($connection->uid))
         {
             $uid = $connection->uid;
             unset($this->_uidConnections[$uid][$connection->id]);
