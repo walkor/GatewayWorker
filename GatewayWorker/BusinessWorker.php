@@ -19,7 +19,6 @@ use \Workerman\Worker;
 use \Workerman\Connection\AsyncTcpConnection;
 use \Workerman\Lib\Timer;
 use \GatewayWorker\Protocols\GatewayProtocol;
-use \GatewayWorker\Lib\Lock;
 use \GatewayWorker\Lib\Store;
 use \GatewayWorker\Lib\Context;
 use \Event;
@@ -64,11 +63,15 @@ class BusinessWorker extends Worker
     protected $_connectingGatewayAddresses = array();
 
     /**
-     * 
-     *
+     * 所有geteway内部通讯地址 
+     * @var array
      */
     protected $_gatewayAddresses = array();
 
+    /**
+     * 等待连接个gateway地址
+     * @var array
+     */
     protected $_waitingConnectGatewayAddresses = array();
     
     /**
@@ -112,6 +115,10 @@ class BusinessWorker extends Worker
         }
     }
 
+    /**
+     * 连接服务注册中心
+     * @return void
+     */
     public function connectToRegister()
     {
         $this->_registerConnection = new AsyncTcpConnection("text://{$this->registerAddress}");
@@ -121,11 +128,19 @@ class BusinessWorker extends Worker
         $this->_registerConnection->connect();
     }
 
+    /**
+     * 与注册中心连接关闭时，定时重连
+     * @return void
+     */
     public function onRegisterConnectionClose()
     {
         Timer::add(1, array($this, 'connectToRegister', null, false));
     } 
 
+    /**
+     * 当注册中心发来消息时
+     * @return void
+     */
     public function onRegisterConnectionMessage($register_connection, $data)
     {
         $data = json_decode($data, true);
@@ -172,9 +187,9 @@ class BusinessWorker extends Worker
         Context::$client_id = Context::addressToClientId($data['local_ip'], $data['local_port'], $data['connection_id']);
         // $_SERVER变量
         $_SERVER = array(
-            'REMOTE_ADDR' => $data['client_ip'],
+            'REMOTE_ADDR' => long2ip($data['client_ip']),
             'REMOTE_PORT' => $data['client_port'],
-            'GATEWAY_ADDR' => $data['local_ip'],
+            'GATEWAY_ADDR' => long2ip($data['local_ip']),
             'GATEWAY_PORT'  => $data['gateway_port'],
             'GATEWAY_CLIENT_ID' => Context::$client_id,
         );
@@ -238,6 +253,10 @@ class BusinessWorker extends Worker
         }
     }
 
+    /**
+     * 尝试连接Gateway内部通讯地址
+     * @return void
+     */  
     public function tryToConnectGateway($addr)
     {
         if(!isset($this->gatewayConnections[$addr]) && !isset($this->_connectingGatewayAddresses[$addr]) && isset($this->_gatewayAddresses[$addr]))
@@ -304,6 +323,10 @@ class BusinessWorker extends Worker
         echo "GatewayConnection Error : $error_no ,$error_msg\n";
     }
 
+    /**
+     * 获取所有Gateway内部通讯地址
+     * @return array
+     */
     public function getAllGatewayAddresses()
     {
         return $this->_gatewayAddresses;

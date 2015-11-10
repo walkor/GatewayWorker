@@ -38,7 +38,7 @@ class Gateway extends Worker
      * 版本
      * @var string
      */
-    const VERSION = '1.0.4';
+    const VERSION = '2.0.0';
     
     /**
      * 本机ip
@@ -53,7 +53,7 @@ class Gateway extends Worker
     public $startPort = 2000;
 
     /**
-     * 注册服务地址,用于注册Gateway Worker，使之能够通讯
+     * 注册服务地址,用于注册Gateway BusinessWorker，使之能够通讯
      * @var string
      */
     public $registerAddress = '127.0.0.1:1236';
@@ -474,7 +474,7 @@ class Gateway extends Worker
                     $this->_clientConnections[$data['connection_id']]->session = $data['ext_data'];
                 }
                 return;
-                // 获得客户端在线状态 Gateway::getOnlineStatus()
+                // 获得客户端在线状态 Gateway::getALLClientInfo()
             case GatewayProtocol::CMD_GET_ALL_CLIENT_INFO:
                 $client_info_array = array();
                 foreach($this->_clientConnections as $connection_id=>$client_connection)
@@ -513,6 +513,7 @@ class Gateway extends Worker
                 $client_connection->uid = $uid;
                 $this->_uidConnections[$uid][$connection_id] = $client_connection;
                 return;
+                // client_id与uid解绑 Gateway::unbindUid($client_id, $uid);
             case GatewayProtocol::CMD_UNBIND_UID:
                 $connection_id = $data['connection_id'];
                 if(!isset($this->_clientConnections[$connection_id]))
@@ -532,7 +533,7 @@ class Gateway extends Worker
                     $client_connection->uid = null;
                 }
                 return;
-                // 发送数据给uid
+                // 发送数据给uid Gateway::sendToUid($uid, $msg);
             case GatewayProtocol::CMD_SEND_TO_UID:
                 $uid_array = json_decode($data['ext_data'],true);
                 foreach($uid_array as $uid)
@@ -546,6 +547,7 @@ class Gateway extends Worker
                     }
                 }
                 return;
+                // 将$client_id加入用户组 Gateway::joinGroup($client_id, $group);
             case GatewayProtocol::CMD_JOIN_GROUP:
                 $group = $data['ext_data'];
                 if(empty($group))
@@ -566,6 +568,7 @@ class Gateway extends Worker
                 $client_connection->groups[$group] = $group;
                 $this->_groupConnections[$group][$connection_id] = $client_connection;
                 return;
+                // 将$client_id从某个用户组中移除 Gateway::leaveGroup($client_id, $group);
             case GatewayProtocol::CMD_LEAVE_GROUP:
                 $group = $data['ext_data'];
                 if(empty($group))
@@ -585,6 +588,7 @@ class Gateway extends Worker
                 }
                 unset($client_connection->groups[$group], $this->_groupConnections[$group][$connection_id]);
                 return;
+                // 向某个用户组发送消息 Gateway::sendToGroup($group, $msg);
             case GatewayProtocol::CMD_SEND_TO_GROUP:
                 $group_array = json_decode($data['ext_data'],true);
                 foreach($group_array as $group)
@@ -598,6 +602,7 @@ class Gateway extends Worker
                     }
                 }
                 return;
+                // 获取某用户组成员信息 Gateway::getClientInfoByGroup($group);
             case GatewayProtocol::CMD_GET_CLINET_INFO_BY_GROUP:
                 $group = $data['ext_data'];
                 if(!isset($this->_groupConnections[$group]))
@@ -612,6 +617,7 @@ class Gateway extends Worker
                 }
                 $connection->send(json_encode($client_info_array)."\n", true);
                 return;
+                // 获取用户组成员数 Gateway::getClientCountByGroup($group);
             case GatewayProtocol::CMD_GET_CLIENT_COUNT_BY_GROUP:
                 $group = $data['ext_data'];
                 if(!isset($this->_groupConnections[$group]))
@@ -621,6 +627,7 @@ class Gateway extends Worker
                 }
                 $connection->send(count($this->_groupConnections[$group])."\n", true);
                 return;
+                // 获取与某个uid绑定的所有client_id Gateway::getClientIdByUid($uid);
             case GatewayProtocol::CMD_GET_CLIENT_ID_BY_UID:
                 $uid = $data['ext_data'];
                 if(empty($this->_uidConnections[$uid]))

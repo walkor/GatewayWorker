@@ -17,7 +17,6 @@ namespace GatewayWorker\Lib;
  * 数据发送相关
  */
 use \Protocols\GatewayProtocol;
-use \GatewayWorker\Lib\Store;
 use \GatewayWorker\Lib\Context;
 
 class Gateway
@@ -32,7 +31,7 @@ class Gateway
      * 注册中心地址
      * @var string
      */
-    public static $registerAddress = '127.0.0.1:1263';
+    public static $registerAddress = '127.0.0.1:1236';
     
    /**
     * 向所有客户端(或者client_id_array指定的客户端)广播消息
@@ -144,12 +143,22 @@ class Gateway
        }
        return $status_data;
    }
-   
+  
+   /**
+    * 获取某个组的成员信息
+    * @param string group
+    * @return array
+    */ 
    public static function getClientInfoByGroup($group)
    {
        return self::getALLClientInfo($group);
    }
    
+   /**
+    * 获取某个组的成员数目
+    * @param string $group
+    * @return int
+    */
    public static function getClientCountByGroup($group)
    {
        $gateway_data = GatewayProtocol::$empty;
@@ -171,7 +180,12 @@ class Gateway
        return $total_count;
    }
    
-   public static function getClientIDByUid($uid)
+   /**
+    * 获取与uid绑定的client_id列表
+    * @param string $uid
+    * @return array
+    */
+   public static function getClientIdByUid($uid)
    {
        $gateway_data = GatewayProtocol::$empty;
        $gateway_data['cmd'] = GatewayProtocol::CMD_GET_CLIENT_ID_BY_UID;
@@ -195,6 +209,11 @@ class Gateway
        return $client_list;
    }
    
+   /**
+    * 批量向所有gateway发包，并得到返回数组
+    * @param string $gateway_data
+    * @return array
+    */
    protected static function getBufferFromAllGateway($gateway_data)
    {
        $gateway_buffer = GatewayProtocol::encode($gateway_data);
@@ -215,7 +234,7 @@ class Gateway
            }
        }
        $client_array = $status_data = $client_address_map = $receive_buffer_array = array();
-       // 批量向所有gateway进程发送CMD_GET_ONLINE_STATUS命令
+       // 批量向所有gateway进程发送请求数据
        foreach($all_addresses as $address)
        {
            $client = stream_socket_client("tcp://$address", $errno, $errmsg);
@@ -509,7 +528,7 @@ class Gateway
        }
        // 非workerman环境，使用udp发送数据
        $gateway_buffer = GatewayProtocol::encode($gateway_data);
-       $client = stream_socket_client("udp://$address", $errno, $errmsg);
+       $client = stream_socket_client("tcp://$address", $errno, $errmsg);
        return strlen($gateway_buffer) == stream_socket_sendto($client, $gateway_buffer);
    }
    
@@ -527,7 +546,7 @@ class Gateway
                $gateway_connection->send($gateway_data);
            }
        }
-       // 运行在其它环境中，使用udp向worker发送数据
+       // 运行在其它环境中，通过注册中心得到gateway地址
        else
        {
            $all_addresses = self::getAllGatewayAddressesFromRegister();
@@ -578,10 +597,10 @@ class Gateway
        {
            throw new \Exception('Can not connect to tcp://' . self::$registerAddress . ' ' .$errmsg);
        }
-       fwrite($client, '{"event":"worker_connect"}');
+       fwrite($client, '{"event":"worker_connect"}'."\n");
        stream_set_timeout($client, 1);
        $ret = fread($client, 65535);
-       if(!$ret || !$data = json_decode($ret, true))
+       if(!$ret || !$data = json_decode(trim($ret), true))
        {
            throw new \Exception('getAllGatewayAddressesFromRegister fail. tcp://' . self::$registerAddress . ' return '.var_export($ret, true));
        }
