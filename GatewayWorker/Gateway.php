@@ -20,8 +20,6 @@ use \Workerman\Lib\Timer;
 use \Workerman\Autoloader;
 use \Workerman\Connection\AsyncTcpConnection;
 use \GatewayWorker\Protocols\GatewayProtocol;
-use \GatewayWorker\Lib\Lock;
-use \GatewayWorker\Lib\Store;
 
 /**
  * 
