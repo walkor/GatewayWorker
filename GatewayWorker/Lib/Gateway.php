@@ -113,7 +113,7 @@ class Gateway
     * 获取在线状态，目前返回一个在线client_id数组,client_id为key
     * @return array
     */
-   public static function getALLClientInfo($group = null)
+   public static function getAllClientInfo($group = null)
    {
        $gateway_data = GatewayProtocol::$empty;
        if(!$group)
@@ -136,7 +136,15 @@ class Gateway
                {
                    foreach($data as $connection_id=>$session_buffer)
                    {
-                       $status_data[Context::addressToClientId($local_ip, $local_port, $connection_id)] = $session_buffer ? Context::sessionDecode($session_buffer) : array();
+                       $client_id = Context::addressToClientId($local_ip, $local_port, $connection_id);
+                       if($client_id === Context::client_id)
+                       {
+                           $status_data[$client_id] = (array)$_SESSION;
+                       }
+                       else
+                       {
+                           $status_data[$client_id] = $session_buffer ? Context::sessionDecode($session_buffer) : array();
+                       }
                    }
                }
            }
@@ -151,7 +159,7 @@ class Gateway
     */ 
    public static function getClientInfoByGroup($group)
    {
-       return self::getALLClientInfo($group);
+       return self::getAllClientInfo($group);
    }
    
    /**
