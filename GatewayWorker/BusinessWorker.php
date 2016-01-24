@@ -20,7 +20,6 @@ use \Workerman\Lib\Timer;
 use \Workerman\Connection\AsyncTcpConnection;
 use \GatewayWorker\Protocols\GatewayProtocol;
 use \GatewayWorker\Lib\Context;
-use \Event;
 
 /**
  * 
@@ -42,6 +41,12 @@ class BusinessWorker extends Worker
      * @var string
      */
     public $registerAddress = "127.0.0.1:1236";
+    
+    /**
+     * 事件处理类,，默认是Event类
+     * @var string
+     */
+    public $eventHandler = 'Event';
     
     /**
      * 保存用户设置的worker启动回调
@@ -231,24 +236,20 @@ class BusinessWorker extends Worker
         $cmd = $data['cmd'];
     
         // 尝试执行Event::onConnection、Event::onMessage、Event::onClose
-        try{
-            switch($cmd)
-            {
-                case GatewayProtocol::CMD_ON_CONNECTION:
-                    Event::onConnect(Context::$client_id);
-                    break;
-                case GatewayProtocol::CMD_ON_MESSAGE:
-                    Event::onMessage(Context::$client_id, $data['body']);
-                    break;
-                case GatewayProtocol::CMD_ON_CLOSE:
-                    Event::onClose(Context::$client_id);
-                    break;
-            }
-        }
-        catch(\Exception $e)
+        switch($cmd)
         {
-            $msg = 'client_id:'.Context::$client_id."\tclient_ip:".Context::$client_ip."\n".$e->__toString();
-            $this->log($msg);
+            case GatewayProtocol::CMD_ON_CONNECTION:
+                call_user_func($this->eventHandler.'::onConnect', Context::$client_id);
+                //Event::onConnect(Context::$client_id);
+                break;
+            case GatewayProtocol::CMD_ON_MESSAGE:
+                call_user_func($this->eventHandler.'::onMessage', Context::$client_id, $data['body']);
+                //Event::onMessage(Context::$client_id, $data['body']);
+                break;
+            case GatewayProtocol::CMD_ON_CLOSE:
+                call_user_func($this->eventHandler.'::onClose', Context::$client_id);
+                //Event::onClose(Context::$client_id);
+                break;
         }
     
         // 判断session是否被更改
