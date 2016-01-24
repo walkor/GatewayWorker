@@ -49,6 +49,12 @@ class BusinessWorker extends Worker
     public $eventHandler = 'Event';
     
     /**
+     * 业务超时时间，可用来定位程序卡在哪里
+     * @var int
+     */
+    public $processTimeout = 0;
+    
+    /**
      * 保存用户设置的worker启动回调
      * @var callback
      */
@@ -125,6 +131,9 @@ class BusinessWorker extends Worker
         {
             call_user_func($this->_onWorkerStart, $this);
         }
+        
+        // 业务超时信号处理
+        pcntl_signal(SIGALRM, array($this, 'timeoutHandler'), false);
     }
     
     /**
@@ -235,21 +244,27 @@ class BusinessWorker extends Worker
         $session_str_copy = $data['ext_data'];
         $cmd = $data['cmd'];
     
+        if($this->processTimeout)
+        {
+            pcntl_alarm($this->processTimeout);
+            declare(ticks=1);
+        }
         // 尝试执行Event::onConnection、Event::onMessage、Event::onClose
         switch($cmd)
         {
             case GatewayProtocol::CMD_ON_CONNECTION:
                 call_user_func($this->eventHandler.'::onConnect', Context::$client_id);
-                //Event::onConnect(Context::$client_id);
                 break;
             case GatewayProtocol::CMD_ON_MESSAGE:
                 call_user_func($this->eventHandler.'::onMessage', Context::$client_id, $data['body']);
-                //Event::onMessage(Context::$client_id, $data['body']);
                 break;
             case GatewayProtocol::CMD_ON_CLOSE:
                 call_user_func($this->eventHandler.'::onClose', Context::$client_id);
-                //Event::onClose(Context::$client_id);
                 break;
+        }
+        if($this->processTimeout)
+        {
+            pcntl_alarm(0);
         }
     
         // 判断session是否被更改
@@ -355,5 +370,26 @@ class BusinessWorker extends Worker
     public function getAllGatewayAddresses()
     {
         return $this->_gatewayAddresses;
+    }
+    
+    /**
+     * 业务超时回调
+     * @param int $signal
+     * @throws Exception
+     */
+    public function timeoutHandler($signal)
+    {
+        switch($signal)
+        {
+            // 时钟处理函数
+            case SIGALRM:
+                if($this->currentClass)
+                {
+                    $e = new Exception("process_timeout", 506);
+                    self::log($e->getMessage().":\n".$e->getTraceAsString());
+                    throw $e;
+                }
+                break;
+        }
     }
 }
