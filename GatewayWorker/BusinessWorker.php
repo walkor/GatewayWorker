@@ -58,7 +58,7 @@ class BusinessWorker extends Worker
      * 业务超时时间，可用来定位程序卡在哪里
      * @var int
      */
-    public $processTimeoutHandler = '//Workerman//Worker::log';
+    public $processTimeoutHandler = '\\Workerman\\Worker::log';
     
     /**
      * 保存用户设置的worker启动回调
@@ -393,7 +393,7 @@ class BusinessWorker extends Worker
                 $e = new \Exception("process_timeout", 506);
                 $trace_str = $e->getTraceAsString();
                 // 去掉第一行timeoutHandler的调用栈
-                $trace_str = $e->getMessage().":\n".substr($trace_str, strpos($trace_str, "\n")+1);
+                $trace_str = $e->getMessage().":\n".substr($trace_str, strpos($trace_str, "\n")+1)."\n";
                 // 开发者没有设置超时处理函数，或者超时处理函数返回空则执行退出
                 if(!$this->processTimeoutHandler || !call_user_func($this->processTimeoutHandler, $trace_str, $e))
                 {
