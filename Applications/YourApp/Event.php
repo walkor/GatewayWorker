@@ -18,9 +18,6 @@ use \GatewayWorker\Lib\Gateway;
  * 主逻辑
  * 主要是处理 onConnect onMessage onClose 三个方法
  * onConnect 和 onClose 如果不需要可以不用实现并删除
- *
- * GatewayWorker开发参见手册：
- * @link http://gatewayworker-doc.workerman.net/
  */
 class Event
 {
@@ -29,13 +26,12 @@ class Event
      * 如果业务不需此回调可以删除onConnect
      * 
      * @param int $client_id 连接id
-     * @link http://gatewayworker-doc.workerman.net/gateway-worker-development/onconnect.html
      */
     public static function onConnect($client_id)
     {
-        // 向当前client_id发送数据 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-client.html
+        // 向当前client_id发送数据 
         Gateway::sendToClient($client_id, "Hello $client_id");
-        // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
+        // 向所有人发送
         Gateway::sendToAll("$client_id login");
     }
     
@@ -43,11 +39,10 @@ class Event
     * 当客户端发来消息时触发
     * @param int $client_id 连接id
     * @param string $message 具体消息
-    * @link http://gatewayworker-doc.workerman.net/gateway-worker-development/onmessage.html
     */
    public static function onMessage($client_id, $message)
    {
-        // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
+        // 向所有人发送 
         Gateway::sendToAll("$client_id said $message");
    }
    
@@ -57,7 +52,7 @@ class Event
     */
    public static function onClose($client_id)
    {
-       // 向所有人发送 @see http://gatewayworker-doc.workerman.net/gateway-worker-development/send-to-all.html
+       // 向所有人发送 
        GateWay::sendToAll("$client_id logout");
    }
 }
