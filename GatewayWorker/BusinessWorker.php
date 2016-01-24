@@ -383,7 +383,7 @@ class BusinessWorker extends Worker
         {
             // 时钟处理函数
             case SIGALRM:
-                $e = new Exception("process_timeout", 506);
+                $e = new \Exception("process_timeout", 506);
                 self::log($e->getMessage().":\n".$e->getTraceAsString());
                 throw $e;
                 break;
