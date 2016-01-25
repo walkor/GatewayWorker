@@ -253,7 +253,6 @@ class BusinessWorker extends Worker
         if($this->processTimeout)
         {
             pcntl_alarm($this->processTimeout);
-            declare(ticks=1);
         }
         // 尝试执行Event::onConnection、Event::onMessage、Event::onClose
         switch($cmd)
