@@ -52,7 +52,7 @@ class BusinessWorker extends Worker
      * 业务超时时间，可用来定位程序卡在哪里
      * @var int
      */
-    public $processTimeout = 0;
+    public $processTimeout = 30;
     
     /**
      * 业务超时时间，可用来定位程序卡在哪里
