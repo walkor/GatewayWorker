@@ -45,7 +45,7 @@ class Event
    /**
     * 当客户端发来消息时触发
     * @param int $client_id 连接id
-    * @param string $message 具体消息
+    * @param mixed $message 具体消息
     */
    public static function onMessage($client_id, $message)
    {
