@@ -376,7 +376,7 @@ class Gateway extends Worker
         // 如果BusinessWorker ip不是127.0.0.1，则需要加gateway到BusinessWorker的心跳
         if($this->lanIp !== '127.0.0.1')
         {
-            Timer::add(GATEWAY_PING_WORKER_INTERVAL, array($this, 'pingBusinessWorker'));
+            Timer::add(self::GATEWAY_PING_WORKER_INTERVAL, array($this, 'pingBusinessWorker'));
         }
         
         if(!class_exists('\Protocols\GatewayProtocol'))
