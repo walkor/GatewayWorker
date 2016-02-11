@@ -158,10 +158,10 @@ class Gateway extends Worker
     protected $_gatewayPort = 0;
     
     /**
-     * gateway到BusinessWorker之间的心跳时间间隔
+     * 用于保持长连接的心跳时间间隔，用于gateway到BusinessWorker以及gateway到Register之间的心跳
      * @var int
      */
-    const GATEWAY_PING_WORKER_INTERVAL = 25;
+    const PERSISTENCE_CONNECTION_PING_INTERVAL  = 25;
     
     /**
      * 构造函数
@@ -376,7 +376,13 @@ class Gateway extends Worker
         // 如果BusinessWorker ip不是127.0.0.1，则需要加gateway到BusinessWorker的心跳
         if($this->lanIp !== '127.0.0.1')
         {
-            Timer::add(self::GATEWAY_PING_WORKER_INTERVAL, array($this, 'pingBusinessWorker'));
+            Timer::add(self::PERSISTENCE_CONNECTION_PING_INTERVAL, array($this, 'pingBusinessWorker'));
+        }
+        
+        // 如果Register服务器不在本地服务器，则需要保持心跳
+        if(strpos($this->registerAddress, '127.0.0.1') !== 0)
+        {
+            Timer::add(self::PERSISTENCE_CONNECTION_PING_INTERVAL, array($this, 'pingRegister'));
         }
         
         if(!class_exists('\Protocols\GatewayProtocol'))
@@ -718,6 +724,17 @@ class Gateway extends Worker
         foreach($this->_workerConnections as $connection)
         {
             $connection->send($gateway_data);
+        }
+    }
+    
+    /**
+     * 向Register发送心跳，用来保持长连接
+     */
+    public function pingRegister()
+    {
+        if($this->_registerConnection)
+        {
+            $this->_registerConnection->send('{"event":"ping"}');
         }
     }
     
