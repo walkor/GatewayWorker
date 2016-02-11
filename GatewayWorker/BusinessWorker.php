@@ -267,6 +267,11 @@ class BusinessWorker extends Worker
      */
     public function onGatewayMessage($connection, $data)
     {
+        $cmd = $data['cmd'];
+        if($cmd === GatewayProtocol::CMD_PING)
+        {
+            return;
+        }
         // 上下文数据
         Context::$client_ip = $data['client_ip'];
         Context::$client_port = $data['client_port'];
@@ -293,7 +298,6 @@ class BusinessWorker extends Worker
         }
         // 备份一次$data['ext_data']，请求处理完毕后判断session是否和备份相等，不相等就更新session
         $session_str_copy = $data['ext_data'];
-        $cmd = $data['cmd'];
     
         if($this->processTimeout)
         {

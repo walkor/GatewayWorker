@@ -158,6 +158,12 @@ class Gateway extends Worker
     protected $_gatewayPort = 0;
     
     /**
+     * gateway到BusinessWorker之间的心跳时间间隔
+     * @var int
+     */
+    const GATEWAY_PING_WORKER_INTERVAL = 25;
+    
+    /**
      * 构造函数
      * @param string $socket_name
      * @param array $context_option
@@ -366,7 +372,13 @@ class Gateway extends Worker
             $timer_interval = $this->pingNotResponseLimit > 0 ? $this->pingInterval/2 : $this->pingInterval;
             Timer::add($timer_interval, array($this, 'ping'));
         }
-    
+        
+        // 如果BusinessWorker ip不是127.0.0.1，则需要加gateway到BusinessWorker的心跳
+        if($this->lanIp !== '127.0.0.1')
+        {
+            Timer::add(GATEWAY_PING_WORKER_INTERVAL, array($this, 'pingBusinessWorker'));
+        }
+        
         if(!class_exists('\Protocols\GatewayProtocol'))
         {
             class_alias('\GatewayWorker\Protocols\GatewayProtocol', 'Protocols\GatewayProtocol');
@@ -692,6 +704,20 @@ class Gateway extends Worker
                 }
                 $connection->send($ping_data);
             }
+        }
+    }
+    
+    /**
+     * 向BusinessWorker发送心跳数据，用于保持长连接
+     * @return void
+     */
+    public static function pingBusinessWorker()
+    {
+        $gateway_data = GatewayProtocol::$empty;
+        $gateway_data['cmd'] = GatewayProtocol::CMD_PING;
+        foreach($this->_workerConnections as $connection)
+        {
+            $connection->send($gateway_data);
         }
     }
     
