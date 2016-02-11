@@ -158,7 +158,7 @@ class Gateway extends Worker
     protected $_gatewayPort = 0;
     
     /**
-     * 用于保持长连接的心跳时间间隔，用于gateway到BusinessWorker以及gateway到Register之间的心跳
+     * 用于保持长连接的心跳时间间隔
      * @var int
      */
     const PERSISTENCE_CONNECTION_PING_INTERVAL  = 25;
