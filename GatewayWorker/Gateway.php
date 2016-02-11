@@ -711,7 +711,7 @@ class Gateway extends Worker
      * 向BusinessWorker发送心跳数据，用于保持长连接
      * @return void
      */
-    public static function pingBusinessWorker()
+    public function pingBusinessWorker()
     {
         $gateway_data = GatewayProtocol::$empty;
         $gateway_data['cmd'] = GatewayProtocol::CMD_PING;
