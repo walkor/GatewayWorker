@@ -20,7 +20,6 @@ use Workerman\Lib\Timer;
 use Workerman\Connection\AsyncTcpConnection;
 use GatewayWorker\Protocols\GatewayProtocol;
 use GatewayWorker\Lib\Context;
-use GatewayWorker\Lib\Gateway;
 
 /**
  *
@@ -172,7 +171,7 @@ class BusinessWorker extends Worker
             class_alias('GatewayWorker\Protocols\GatewayProtocol', 'Protocols\GatewayProtocol');
         }
         $this->connectToRegister();
-        Gateway::setBusinessWorker($this);
+        \GatewayWorker\Lib\Gateway::setBusinessWorker($this);
         if ($this->_onWorkerStart) {
             call_user_func($this->_onWorkerStart, $this);
         }
@@ -340,7 +339,7 @@ class BusinessWorker extends Worker
         // 判断 session 是否被更改
         $session_str_now = $_SESSION !== null ? Context::sessionEncode($_SESSION) : '';
         if ($session_str_copy != $session_str_now) {
-            Gateway::updateSocketSession(Context::$client_id, $session_str_now);
+            \GatewayWorker\Lib\Gateway::updateSocketSession(Context::$client_id, $session_str_now);
         }
 
         Context::clear();
@@ -379,8 +378,9 @@ class BusinessWorker extends Worker
             if (TcpConnection::$defaultMaxSendBufferSize == $gateway_connection->maxSendBufferSize) {
                 $gateway_connection->maxSendBufferSize = 50 * 1024 * 1024;
             }
-            $gateway_data        = GatewayProtocol::$empty;
-            $gateway_data['cmd'] = GatewayProtocol::CMD_WORKER_CONNECT;
+            $gateway_data         = GatewayProtocol::$empty;
+            $gateway_data['cmd']  = GatewayProtocol::CMD_WORKER_CONNECT;
+            $gateway_data['body'] = "{$this->name}:{$this->id}";
             $gateway_connection->send($gateway_data);
             $gateway_connection->connect();
             $this->_connectingGatewayAddresses[$addr] = $addr;

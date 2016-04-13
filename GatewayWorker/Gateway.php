@@ -36,7 +36,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '2.0.3';
+    const VERSION = '2.0.4';
 
     /**
      * 本机 IP
@@ -463,10 +463,10 @@ class Gateway extends Worker
     {
         $cmd = $data['cmd'];
         switch ($cmd) {
+            // BusinessWorker连接Gateway
             case GatewayProtocol::CMD_WORKER_CONNECT:
-                $connection->remoteAddress                            = $connection->getRemoteIp() . ':' .
-                    $connection->getRemotePort();
-                $this->_workerConnections[$connection->remoteAddress] = $connection;
+                $connection->key                            = $connection->getRemoteIp() . ':' . $data['body'];
+                $this->_workerConnections[$connection->key] = $connection;
                 return;
             // 向某客户端发送数据，Gateway::sendToClient($client_id, $message);
             case GatewayProtocol::CMD_SEND_TO_ONE:
@@ -629,11 +629,15 @@ class Gateway extends Worker
             // 获取用户组成员数 Gateway::getClientCountByGroup($group);
             case GatewayProtocol::CMD_GET_CLIENT_COUNT_BY_GROUP:
                 $group = $data['ext_data'];
-                if (!isset($this->_groupConnections[$group])) {
-                    $connection->send("0\n", true);
-                    return;
+                $count = 0;
+                if ($group !== '') {
+                    if (isset($this->_groupConnections[$group])) {
+                        $count = count($this->_groupConnections[$group]);
+                    }
+                } else {
+                    $count = count($this->_clientConnections);
                 }
-                $connection->send(count($this->_groupConnections[$group]) . "\n", true);
+                $connection->send("$count\n", true);
                 return;
             // 获取与某个 uid 绑定的所有 client_id Gateway::getClientIdByUid($uid);
             case GatewayProtocol::CMD_GET_CLIENT_ID_BY_UID:
@@ -657,9 +661,9 @@ class Gateway extends Worker
      */
     public function onWorkerClose($connection)
     {
-        // $this->log("{$connection->remoteAddress} CLOSE INNER_CONNECTION\n");
-        if (isset($connection->remoteAddress)) {
-            unset($this->_workerConnections[$connection->remoteAddress]);
+        // $this->log("{$connection->key} CLOSE INNER_CONNECTION\n");
+        if (isset($connection->key)) {
+            unset($this->_workerConnections[$connection->key]);
         }
     }
 

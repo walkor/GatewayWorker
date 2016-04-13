@@ -37,7 +37,7 @@ class Gateway
     public static $registerAddress = '127.0.0.1:1236';
 
     /**
-     * 向所有客户端(或者 client_id_array 指定的客户端)广播消息
+     * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
      *
      * @param string $message         向客户端发送的消息
      * @param array  $client_id_array 客户端 id 数组
@@ -72,7 +72,7 @@ class Gateway
     }
 
     /**
-     * 向某个客户端发消息
+     * 向某个客户端连接发消息
      *
      * @param int    $client_id
      * @param string $message
@@ -84,7 +84,7 @@ class Gateway
     }
 
     /**
-     * 向当前客户端发送消息
+     * 向当前客户端连接发送消息
      *
      * @param string $message
      * @return bool
@@ -95,7 +95,7 @@ class Gateway
     }
 
     /**
-     * 判断某个客户端是否在线
+     * 判断某个客户端连接是否在线
      *
      * @param int $client_id
      * @return int 0|1
@@ -151,7 +151,7 @@ class Gateway
     }
 
     /**
-     * 获取某个组的成员信息
+     * 获取某个组的连接信息
      *
      * @param string $group
      * @return array
@@ -160,14 +160,24 @@ class Gateway
     {
         return self::getAllClientInfo($group);
     }
+    
+    /**
+     * 获取所有连接数
+     *
+     * @return int
+     */
+    public static function getAllClientCount()
+    {
+        return self::getClientCountByGroup();
+    }
 
     /**
-     * 获取某个组的成员数目
+     * 获取某个组的在线连接数
      *
      * @param string $group
      * @return int
      */
-    public static function getClientCountByGroup($group)
+    public static function getClientCountByGroup($group = '')
     {
         $gateway_data             = GatewayProtocol::$empty;
         $gateway_data['cmd']      = GatewayProtocol::CMD_GET_CLIENT_COUNT_BY_GROUP;
