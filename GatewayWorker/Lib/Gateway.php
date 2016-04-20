@@ -549,6 +549,7 @@ class Gateway
         }
         // 非workerman环境
         $gateway_buffer = GatewayProtocol::encode($gateway_data);
+        $gateway_buffer = self::$secretKey ? self::generateAuthBuffer() . $gateway_buffer : $gateway_buffer;
         $client         = stream_socket_client("tcp://$address", $errno, $errmsg);
         return strlen($gateway_buffer) == stream_socket_sendto($client, $gateway_buffer);
     }
@@ -617,7 +618,7 @@ class Gateway
         if (!$client) {
             throw new Exception('Can not connect to tcp://' . self::$registerAddress . ' ' . $errmsg);
         }
-        fwrite($client, '{"event":"worker_connect"}' . "\n");
+        fwrite($client, '{"event":"worker_connect","secret_key":"' . self::$secretKey . '"}' . "\n");
         stream_set_timeout($client, 1);
         $ret = fread($client, 65535);
         if (!$ret || !$data = json_decode(trim($ret), true)) {
