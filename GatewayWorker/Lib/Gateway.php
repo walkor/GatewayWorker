@@ -620,7 +620,7 @@ class Gateway
         }
         fwrite($client, '{"event":"worker_connect","secret_key":"' . self::$secretKey . '"}' . "\n");
         stream_set_timeout($client, 1);
-        $ret = fread($client, 65535);
+        $ret = fgets($client, 65535);
         if (!$ret || !$data = json_decode(trim($ret), true)) {
             throw new Exception('getAllGatewayAddressesFromRegister fail. tcp://' .
                 self::$registerAddress . ' return ' . var_export($ret, true));
