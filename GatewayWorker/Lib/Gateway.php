@@ -37,6 +37,12 @@ class Gateway
     public static $registerAddress = '127.0.0.1:1236';
 
     /**
+     * 秘钥
+     * @var string
+     */
+    public static $secretKey = '';
+    
+    /**
      * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
      *
      * @param string $message         向客户端发送的消息
@@ -220,6 +226,21 @@ class Gateway
         }
         return $client_list;
     }
+    
+    /**
+     * 生成验证包，用于验证此客户端的合法性
+     * 
+     * @return string
+     */
+    protected static function generateAuthBuffer()
+    {
+        $gateway_data         = GatewayProtocol::$empty;
+        $gateway_data['cmd']  = GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT;
+        $gateway_data['body'] = json_encode(array(
+            'secret_key' => self::$secretKey,
+        ));
+        return GatewayProtocol::encode($gateway_data);
+    }
 
     /**
      * 批量向所有 gateway 发包，并得到返回数组
@@ -231,6 +252,7 @@ class Gateway
     protected static function getBufferFromAllGateway($gateway_data)
     {
         $gateway_buffer = GatewayProtocol::encode($gateway_data);
+        $gateway_buffer = self::$secretKey ? self::generateAuthBuffer() . $gateway_buffer : $gateway_buffer;
         if (isset(self::$businessWorker)) {
             $all_addresses = self::$businessWorker->getAllGatewayAddresses();
             if (empty($all_addresses)) {
@@ -474,6 +496,7 @@ class Gateway
     protected static function sendAndRecv($address, $data)
     {
         $buffer = GatewayProtocol::encode($data);
+        $buffer = self::$secretKey ? self::generateAuthBuffer() . $buffer : $buffer;
         $client = stream_socket_client("tcp://$address", $errno, $errmsg);
         if (!$client) {
             throw new Exception("can not connect to tcp://$address $errmsg");

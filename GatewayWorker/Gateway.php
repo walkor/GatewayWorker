@@ -94,6 +94,12 @@ class Gateway extends Worker
      * @var string
      */
     public $pingData = '';
+    
+    /**
+     * 秘钥
+     * @var string
+     */
+    public $secretKey = '';
 
     /**
      * 路由函数
@@ -450,6 +456,7 @@ class Gateway extends Worker
         if (TcpConnection::$defaultMaxSendBufferSize === $connection->maxSendBufferSize) {
             $connection->maxSendBufferSize = 50 * 1024 * 1024;
         }
+        $connection->authorized = $this->secretKey ? false : true;
     }
 
     /**
@@ -462,12 +469,31 @@ class Gateway extends Worker
     public function onWorkerMessage($connection, $data)
     {
         $cmd = $data['cmd'];
+        if (empty($connection->authorized) && $cmd !== GatewayProtocol::CMD_WORKER_CONNECT && $cmd !== GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT) {
+            echo "Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort() . "\n";
+            return $connection->close();
+        }
         switch ($cmd) {
             // BusinessWorker连接Gateway
             case GatewayProtocol::CMD_WORKER_CONNECT:
-                $connection->key                            = $connection->getRemoteIp() . ':' . $data['body'];
+                $worker_info = json_decode($data['body'], true);
+                if ($worker_info['secret_key'] !== $this->secretKey) {
+                    echo "Gateway: Worker key does not match $secret_key !== {$this->secretKey}\n";
+                    return $connection->close();
+                }
+                $connection->key                            = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
                 $this->_workerConnections[$connection->key] = $connection;
+                $connection->authorized = true;
                 return;
+                // GatewayClient连接Gateway
+                case GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT:
+                    $worker_info = json_decode($data['body'], true);
+                    if ($worker_info['secret_key'] !== $this->secretKey) {
+                        echo "Gateway: GatewayClient key does not match $secret_key !== {$this->secretKey}\n";
+                        return $connection->close();
+                    }
+                    $connection->authorized = true;
+                    return;
             // 向某客户端发送数据，Gateway::sendToClient($client_id, $message);
             case GatewayProtocol::CMD_SEND_TO_ONE:
                 if (isset($this->_clientConnections[$data['connection_id']])) {
@@ -676,7 +702,7 @@ class Gateway extends Worker
     {
         $address                   = $this->lanIp . ':' . $this->lanPort;
         $this->_registerConnection = new AsyncTcpConnection("text://{$this->registerAddress}");
-        $this->_registerConnection->send('{"event":"gateway_connect", "address":"' . $address . '"}');
+        $this->_registerConnection->send('{"event":"gateway_connect", "address":"' . $address . '", "secret_key":"' . $this->secretKey . '"}');
         $this->_registerConnection->onClose = array($this, 'onRegisterConnectionClose');
         $this->_registerConnection->connect();
     }
