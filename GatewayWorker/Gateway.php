@@ -788,7 +788,7 @@ class Gateway extends Worker
             $connection->pingNotResponseCount++;
             if ($ping_data) {
                 if ($connection->pingNotResponseCount === 0 ||
-                    ($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount % 2 === 0)
+                    ($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount % 2 === 1)
                 ) {
                     continue;
                 }
