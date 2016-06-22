@@ -285,6 +285,7 @@ class Gateway extends Worker
             'client_port'   => $connection->getRemotePort(),
             'gateway_port'  => $this->_gatewayPort,
             'connection_id' => $connection->id,
+            'flag'          => 0,
         );
         // 连接的 session
         $connection->session = '';
@@ -530,18 +531,19 @@ class Gateway extends Worker
                 return;
             // 广播, Gateway::sendToAll($message, $client_id_array)
             case GatewayProtocol::CMD_SEND_TO_ALL:
+                $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 // $client_id_array 不为空时，只广播给 $client_id_array 指定的客户端
                 if ($data['ext_data']) {
                     $connection_id_array = unpack('N*', $data['ext_data']);
                     foreach ($connection_id_array as $connection_id) {
                         if (isset($this->_clientConnections[$connection_id])) {
-                            $this->_clientConnections[$connection_id]->send($data['body']);
+                            $this->_clientConnections[$connection_id]->send($data['body'], $raw);
                         }
                     }
                 } // $client_id_array 为空时，广播给所有在线客户端
                 else {
                     foreach ($this->_clientConnections as $client_connection) {
-                        $client_connection->send($data['body']);
+                        $client_connection->send($data['body'], $raw);
                     }
                 }
                 return;
@@ -680,12 +682,13 @@ class Gateway extends Worker
                 return;
             // 向某个用户组发送消息 Gateway::sendToGroup($group, $msg);
             case GatewayProtocol::CMD_SEND_TO_GROUP:
+                $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 $group_array = json_decode($data['ext_data'], true);
                 foreach ($group_array as $group) {
                     if (!empty($this->_groupConnections[$group])) {
                         foreach ($this->_groupConnections[$group] as $connection) {
                             /** @var TcpConnection $connection */
-                            $connection->send($data['body']);
+                            $connection->send($data['body'], $raw);
                         }
                     }
                 }
