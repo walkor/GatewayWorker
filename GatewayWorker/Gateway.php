@@ -99,6 +99,7 @@ class Gateway extends Worker
     
     /**
      * 秘钥
+     *
      * @var string
      */
     public $secretKey = '';
@@ -109,6 +110,13 @@ class Gateway extends Worker
      * @var callback
      */
     public $router = null;
+
+    /**
+     * 协议加速
+     *
+     * @var bool
+     */
+    public $protocolAccelerate = false;
 
     /**
      * 保存客户端的所有 connection 对象
@@ -532,18 +540,26 @@ class Gateway extends Worker
             // 广播, Gateway::sendToAll($message, $client_id_array)
             case GatewayProtocol::CMD_SEND_TO_ALL:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
+                $body = $data['body'];
+                if (!$raw && $this->protocolAccelerate && $this->_clientConnections) {
+                    foreach ($this->_clientConnections as $client_connection) {
+                        $body = call_user_func(array($client_connection->protocol, 'encode'), $body, $client_connection);
+                        $raw = true;
+                        break;
+                    }
+                }
                 // $client_id_array 不为空时，只广播给 $client_id_array 指定的客户端
                 if ($data['ext_data']) {
                     $connection_id_array = unpack('N*', $data['ext_data']);
                     foreach ($connection_id_array as $connection_id) {
                         if (isset($this->_clientConnections[$connection_id])) {
-                            $this->_clientConnections[$connection_id]->send($data['body'], $raw);
+                            $this->_clientConnections[$connection_id]->send($body, $raw);
                         }
                     }
                 } // $client_id_array 为空时，广播给所有在线客户端
                 else {
                     foreach ($this->_clientConnections as $client_connection) {
-                        $client_connection->send($data['body'], $raw);
+                        $client_connection->send($body, $raw);
                     }
                 }
                 return;
@@ -683,12 +699,20 @@ class Gateway extends Worker
             // 向某个用户组发送消息 Gateway::sendToGroup($group, $msg);
             case GatewayProtocol::CMD_SEND_TO_GROUP:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
+                $body = $data['body'];
+                if (!$raw && $this->protocolAccelerate && $this->_clientConnections) {
+                    foreach ($this->_clientConnections as $client_connection) {
+                        $body = call_user_func(array($client_connection->protocol, 'encode'), $body, $client_connection);
+                        $raw = true;
+                        break;
+                    }
+                }
                 $group_array = json_decode($data['ext_data'], true);
                 foreach ($group_array as $group) {
                     if (!empty($this->_groupConnections[$group])) {
                         foreach ($this->_groupConnections[$group] as $connection) {
                             /** @var TcpConnection $connection */
-                            $connection->send($data['body'], $raw);
+                            $connection->send($body, $raw);
                         }
                     }
                 }
