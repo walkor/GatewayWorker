@@ -41,6 +41,18 @@ class Gateway
      * @var string
      */
     public static $secretKey = '';
+
+    /**
+     * 链接超时时间
+     * @var int
+     */
+    public static $connectTimeout = 3;
+
+    /**
+     * 与Gateway是否是长链接
+     * @var bool
+     */
+    public static $persistentConnection = true;
     
     /**
      * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
@@ -59,6 +71,10 @@ class Gateway
         }
 
         if ($client_id_array) {
+            if (!is_array($client_id_array)) {
+                echo new \Exception('bad $client_id_array:'.var_export($client_id_array, true));
+                return;
+            }
             $data_array = array();
             foreach ($client_id_array as $client_id) {
                 $address = Context::clientIdToAddress($client_id);
@@ -300,7 +316,7 @@ class Gateway
         $client_array = $status_data = $client_address_map = $receive_buffer_array = $recv_length_array = array();
         // 批量向所有gateway进程发送请求数据
         foreach ($all_addresses as $address) {
-            $client = stream_socket_client("tcp://$address", $errno, $errmsg);
+            $client = stream_socket_client("tcp://$address", $errno, $errmsg, self::$connectTimeout);
             if ($client && strlen($gateway_buffer) === stream_socket_sendto($client, $gateway_buffer)) {
                 $socket_id                        = (int)$client;
                 $client_array[$socket_id]         = $client;
@@ -578,7 +594,7 @@ class Gateway
     {
         $buffer = GatewayProtocol::encode($data);
         $buffer = self::$secretKey ? self::generateAuthBuffer() . $buffer : $buffer;
-        $client = stream_socket_client("tcp://$address", $errno, $errmsg);
+        $client = stream_socket_client("tcp://$address", $errno, $errmsg, self::$connectTimeout);
         if (!$client) {
             throw new Exception("can not connect to tcp://$address $errmsg");
         }
@@ -648,7 +664,8 @@ class Gateway
         }
         // 非workerman环境
         $gateway_buffer = self::$secretKey ? self::generateAuthBuffer() . $gateway_buffer : $gateway_buffer;
-        $client         = stream_socket_client("tcp://$address", $errno, $errmsg);
+        $flag           = self::$persistentConnection ? STREAM_CLIENT_PERSISTENT | STREAM_CLIENT_CONNECT : STREAM_CLIENT_CONNECT;
+        $client         = stream_socket_client("tcp://$address", $errno, $errmsg, self::$connectTimeout, $flag);
         return strlen($gateway_buffer) == stream_socket_sendto($client, $gateway_buffer);
     }
 
@@ -713,18 +730,25 @@ class Gateway
      */
     protected static function getAllGatewayAddressesFromRegister()
     {
-        $client = stream_socket_client('tcp://' . self::$registerAddress, $errno, $errmsg, 1);
-        if (!$client) {
-            throw new Exception('Can not connect to tcp://' . self::$registerAddress . ' ' . $errmsg);
+        static $addresses_cache, $last_update;
+        $time_now = time();
+        $expiration_time = 1;
+        if(empty($addresses_cache) || $time_now - $last_update > $expiration_time) {
+            $client = stream_socket_client('tcp://' . self::$registerAddress, $errno, $errmsg, self::$connectTimeout);
+            if (!$client) {
+                throw new Exception('Can not connect to tcp://' . self::$registerAddress . ' ' . $errmsg);
+            }
+            fwrite($client, '{"event":"worker_connect","secret_key":"' . self::$secretKey . '"}' . "\n");
+            stream_set_timeout($client, 1);
+            $ret = fgets($client, 655350);
+            if (!$ret || !$data = json_decode(trim($ret), true)) {
+                throw new Exception('getAllGatewayAddressesFromRegister fail. tcp://' .
+                    self::$registerAddress . ' return ' . var_export($ret, true));
+            }
+            $last_update = $time_now;
+            $addresses_cache = $data['addresses'];
         }
-        fwrite($client, '{"event":"worker_connect","secret_key":"' . self::$secretKey . '"}' . "\n");
-        stream_set_timeout($client, 1);
-        $ret = fgets($client, 65535);
-        if (!$ret || !$data = json_decode(trim($ret), true)) {
-            throw new Exception('getAllGatewayAddressesFromRegister fail. tcp://' .
-                self::$registerAddress . ' return ' . var_export($ret, true));
-        }
-        return $data['addresses'];
+        return $addresses_cache;
     }
 }
 
