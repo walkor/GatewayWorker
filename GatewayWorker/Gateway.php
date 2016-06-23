@@ -116,7 +116,7 @@ class Gateway extends Worker
      *
      * @var bool
      */
-    public $protocolAccelerate = false;
+    public $protocolAccelerate = true;
 
     /**
      * 保存客户端的所有 connection 对象
