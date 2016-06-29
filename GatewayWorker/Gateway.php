@@ -509,7 +509,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_WORKER_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    echo "Gateway: Worker key does not match $secret_key !== {$this->secretKey}\n";
+                    echo "Gateway: Worker key does not match {$this->secretKey} !== {$this->secretKey}\n";
                     return $connection->close();
                 }
                 $connection->key                            = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
@@ -520,7 +520,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    echo "Gateway: GatewayClient key does not match $secret_key !== {$this->secretKey}\n";
+                    echo "Gateway: GatewayClient key does not match {$this->secretKey} !== {$this->secretKey}\n";
                     return $connection->close();
                 }
                 $connection->authorized = true;
@@ -541,12 +541,9 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_SEND_TO_ALL:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 $body = $data['body'];
-                if (!$raw && $this->protocolAccelerate && $this->_clientConnections) {
-                    foreach ($this->_clientConnections as $client_connection) {
-                        $body = call_user_func(array($client_connection->protocol, 'encode'), $body, $client_connection);
-                        $raw = true;
-                        break;
-                    }
+                if (!$raw && $this->protocolAccelerate) {
+                    $body = $this->preEncodeForClient($body);
+                    $raw = true;
                 }
                 // $client_id_array 不为空时，只广播给 $client_id_array 指定的客户端
                 if ($data['ext_data']) {
@@ -700,12 +697,9 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_SEND_TO_GROUP:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 $body = $data['body'];
-                if (!$raw && $this->protocolAccelerate && $this->_clientConnections) {
-                    foreach ($this->_clientConnections as $client_connection) {
-                        $body = call_user_func(array($client_connection->protocol, 'encode'), $body, $client_connection);
-                        $raw = true;
-                        break;
-                    }
+                if (!$raw && $this->protocolAccelerate) {
+                    $body = $this->preEncodeForClient($body);
+                    $raw = true;
                 }
                 $group_array = json_decode($data['ext_data'], true);
                 foreach ($group_array as $group) {
@@ -802,6 +796,11 @@ class Gateway extends Worker
     public function ping()
     {
         $ping_data = $this->pingData ? (string)$this->pingData : null;
+        $raw = false;
+        if ($this->protocolAccelerate && $ping_data) {
+            $ping_data = $this->preEncodeForClient($ping_data);
+            $raw = true;
+        }
         // 遍历所有客户端连接
         foreach ($this->_clientConnections as $connection) {
             // 上次发送的心跳还没有回复次数大于限定值就断开
@@ -819,7 +818,7 @@ class Gateway extends Worker
                 ) {
                     continue;
                 }
-                $connection->send($ping_data);
+                $connection->send($ping_data, $raw);
             }
         }
     }
@@ -845,6 +844,18 @@ class Gateway extends Worker
     {
         if ($this->_registerConnection) {
             $this->_registerConnection->send('{"event":"ping"}');
+        }
+    }
+
+    /**
+     * @param mixed $data
+     *
+     * @return string
+     */
+    protected function preEncodeForClient($data)
+    {
+        foreach ($this->_clientConnections as $client_connection) {
+            return call_user_func(array($client_connection->protocol, 'encode'), $data, $client_connection);
         }
     }
 
