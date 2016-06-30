@@ -541,7 +541,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_SEND_TO_ALL:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 $body = $data['body'];
-                if (!$raw && $this->protocolAccelerate) {
+                if (!$raw && $this->protocolAccelerate && $this->protocol) {
                     $body = $this->preEncodeForClient($body);
                     $raw = true;
                 }
@@ -697,7 +697,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_SEND_TO_GROUP:
                 $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
                 $body = $data['body'];
-                if (!$raw && $this->protocolAccelerate) {
+                if (!$raw && $this->protocolAccelerate && $this->protocol && $this->protocol) {
                     $body = $this->preEncodeForClient($body);
                     $raw = true;
                 }
@@ -797,7 +797,7 @@ class Gateway extends Worker
     {
         $ping_data = $this->pingData ? (string)$this->pingData : null;
         $raw = false;
-        if ($this->protocolAccelerate && $ping_data) {
+        if ($this->protocolAccelerate && $ping_data && $this->protocol) {
             $ping_data = $this->preEncodeForClient($ping_data);
             $raw = true;
         }
