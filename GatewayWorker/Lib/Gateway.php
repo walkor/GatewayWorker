@@ -57,17 +57,28 @@ class Gateway
     /**
      * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
      *
-     * @param string $message         向客户端发送的消息
-     * @param array  $client_id_array 客户端 id 数组
+     * @param string $message           向客户端发送的消息
+     * @param array  $client_id_array   客户端 id 数组
+     * @param array  $exclude_client_id 不给这些client_id发
+     * @param bool   $raw               是否发送原始数据（即不调用gateway的协议的encode方法）
      * @return void
      */
-    public static function sendToAll($message, $client_id_array = null, $raw = false)
+    public static function sendToAll($message, $client_id_array = null, $exclude_client_id = null, $raw = false)
     {
         $gateway_data         = GatewayProtocol::$empty;
         $gateway_data['cmd']  = GatewayProtocol::CMD_SEND_TO_ALL;
         $gateway_data['body'] = $message;
         if ($raw) {
             $gateway_data['flag'] |= GatewayProtocol::FLAG_NOT_CALL_ENCODE;
+        }
+
+        if ($exclude_client_id) {
+            if (!is_array($exclude_client_id)) {
+                $exclude_client_id = array($exclude_client_id);
+            }
+            if ($client_id_array) {
+                $exclude_client_id = array_flip($exclude_client_id);
+            }
         }
 
         if ($client_id_array) {
@@ -77,15 +88,16 @@ class Gateway
             }
             $data_array = array();
             foreach ($client_id_array as $client_id) {
-                $address = Context::clientIdToAddress($client_id);
-
+                if (isset($exclude_client_id[$client_id])) {
+                    continue;
+                }
+                $address                                     = Context::clientIdToAddress($client_id);
                 $key                                         = long2ip($address['local_ip']) . ":{$address['local_port']}";
                 $data_array[$key][$address['connection_id']] = $address['connection_id'];
             }
             foreach ($data_array as $addr => $connection_id_list) {
                 $the_gateway_data             = $gateway_data;
-                $the_gateway_data['ext_data'] = call_user_func_array('pack',
-                    array_merge(array('N*'), $connection_id_list));
+                $the_gateway_data['ext_data'] = json_encode(array('connections' => $connection_id_list));
                 self::sendToGateway($addr, $the_gateway_data);
             }
             return;
@@ -93,7 +105,34 @@ class Gateway
             return;
         }
 
-        self::sendToAllGateway($gateway_data);
+        if (!$exclude_client_id) {
+            return self::sendToAllGateway($gateway_data);
+        }
+
+        $address_connection_array = self::clientIdArrayToAddressArray($exclude_client_id);
+
+        // 如果有businessWorker实例，说明运行在workerman环境中，通过businessWorker中的长连接发送数据
+        if (self::$businessWorker) {
+            foreach (self::$businessWorker->gatewayConnections as $address => $gateway_connection) {
+                $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
+                    json_encode(array('exclude'=> $address_connection_array[$address])) : '';
+                /** @var TcpConnection $gateway_connection */
+                $gateway_connection->send($gateway_data);
+            }
+        } // 运行在其它环境中，通过注册中心得到gateway地址
+        else {
+            $all_addresses = self::getAllGatewayAddressesFromRegister();
+            if (!$all_addresses) {
+                throw new Exception('Gateway::getAllGatewayAddressesFromRegister() with registerAddress:' .
+                    self::$registerAddress . '  return ' . var_export($all_addresses, true));
+            }
+            foreach ($all_addresses as $address) {
+                $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
+                    json_encode(array('exclude'=> $address_connection_array[$address])) : '';
+                self::sendBufferToGateway($address, $gateway_data);
+            }
+        }
+
     }
 
     /**
@@ -466,11 +505,12 @@ class Gateway
     /**
      * 向 group 发送
      *
-     * @param int|string|array $group
-     * @param string           $message
-     * @param bool             $raw
+     * @param int|string|array $group             组（不允许是 0 '0' false null array()等为空的值）
+     * @param string           $message           消息
+     * @param array            $exclude_client_id 不给这些client_id发
+     * @param bool             $raw               发送原始数据（即不调用gateway的协议的encode方法）
      */
-    public static function sendToGroup($group, $message, $raw = false)
+    public static function sendToGroup($group, $message, $exclude_client_id = null, $raw = false)
     {
         $gateway_data         = GatewayProtocol::$empty;
         $gateway_data['cmd']  = GatewayProtocol::CMD_SEND_TO_GROUP;
@@ -483,9 +523,42 @@ class Gateway
             $group = array($group);
         }
 
-        $gateway_data['ext_data'] = json_encode($group);
+        // 分组发送，没有排除的client_id，直接发送
+        $default_ext_data_buffer = json_encode(array('group'=> $group, 'exclude'=> null));
+        if (empty($exclude_client_id)) {
+            $gateway_data['ext_data'] = $default_ext_data_buffer;
+            return self::sendToAllGateway($gateway_data);
+        }
 
-        self::sendToAllGateway($gateway_data);
+        // 分组发送，有排除的client_id，需要将client_id转换成对应gateway进程内的connectionId
+        if (!is_array($exclude_client_id)) {
+            $exclude_client_id = array($exclude_client_id);
+        }
+
+        $address_connection_array = self::clientIdArrayToAddressArray($exclude_client_id);
+        // 如果有businessWorker实例，说明运行在workerman环境中，通过businessWorker中的长连接发送数据
+        if (self::$businessWorker) {
+            foreach (self::$businessWorker->gatewayConnections as $address => $gateway_connection) {
+                $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
+                    json_encode(array('group'=> $group, 'exclude'=> $address_connection_array[$address])) :
+                    $default_ext_data_buffer;
+                /** @var TcpConnection $gateway_connection */
+                $gateway_connection->send($gateway_data);
+            }
+        } // 运行在其它环境中，通过注册中心得到gateway地址
+        else {
+            $all_addresses = self::getAllGatewayAddressesFromRegister();
+            if (!$all_addresses) {
+                throw new Exception('Gateway::getAllGatewayAddressesFromRegister() with registerAddress:' .
+                    self::$registerAddress . '  return ' . var_export($all_addresses, true));
+            }
+            foreach ($all_addresses as $address) {
+                $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
+                    json_encode(array('group'=> $group, 'exclude'=> array_values($address_connection_array[$address]))) :
+                    $default_ext_data_buffer;
+                self::sendBufferToGateway($address, $gateway_data);
+            }
+        }
     }
 
     /**
@@ -710,6 +783,24 @@ class Gateway
         $gateway_data['cmd']           = GatewayProtocol::CMD_KICK;
         $gateway_data['connection_id'] = $connection_id;
         return self::sendToGateway($address, $gateway_data);
+    }
+
+    /**
+     * 将clientid数组转换成address数组
+     *
+     * @param array $client_id_array
+     * @return array
+     */
+    protected static function clientIdArrayToAddressArray(array $client_id_array)
+    {
+        $address_connection_array = array();
+        foreach ($client_id_array as $client_id) {
+            $address_data                                                       = Context::clientIdToAddress($client_id);
+            $address                                                            = long2ip($address_data['local_ip']) .
+                ":{$address_data['local_port']}";
+            $address_connection_array[$address][$address_data['connection_id']] = $address_data['connection_id'];
+        }
+        return $address_connection_array;
     }
 
     /**
