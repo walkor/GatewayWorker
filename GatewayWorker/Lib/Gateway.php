@@ -129,7 +129,7 @@ class Gateway
             foreach ($all_addresses as $address) {
                 $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
                     json_encode(array('exclude'=> $address_connection_array[$address])) : '';
-                self::sendBufferToGateway($address, $gateway_data);
+                self::sendToGateway($address, $gateway_data);
             }
         }
 
@@ -556,7 +556,7 @@ class Gateway
                 $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
                     json_encode(array('group'=> $group, 'exclude'=> array_values($address_connection_array[$address]))) :
                     $default_ext_data_buffer;
-                self::sendBufferToGateway($address, $gateway_data);
+                self::sendToGateway($address, $gateway_data);
             }
         }
     }
