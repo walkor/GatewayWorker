@@ -113,7 +113,7 @@ class Register extends Worker
         Timer::del($connection->timeout_timerid);
         $data       = @json_decode($buffer, true);
         if (empty($data['event'])) {
-            $error = "Bad request for Gegister service. If you are a client please connect Gateway. Request info(IP:".$connection->getRemoteIp().", Request Buffer:$buffer)\n";
+            $error = "Bad request for Register service. If you are a client please connect Gateway. Request info(IP:".$connection->getRemoteIp().", Request Buffer:$buffer)\n";
             echo $error;
             return $connection->close($error);
         }
