@@ -562,7 +562,7 @@ class Gateway
             }
             foreach ($all_addresses as $address) {
                 $gateway_data['ext_data'] = isset($address_connection_array[$address]) ?
-                    json_encode(array('group'=> $group, 'exclude'=> array_values($address_connection_array[$address]))) :
+                    json_encode(array('group'=> $group, 'exclude'=> $address_connection_array[$address])) :
                     $default_ext_data_buffer;
                 self::sendToGateway($address, $gateway_data);
             }
