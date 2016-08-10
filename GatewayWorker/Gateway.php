@@ -229,7 +229,7 @@ class Gateway extends Worker
     public function __construct($socket_name, $context_option = array())
     {
         parent::__construct($socket_name, $context_option);
-        list(, , $this->_gatewayPort) = explode(':', $socket_name);
+		$this->_gatewayPort = substr(strrchr($socket_name,':'),1);
         $this->router = array("\\GatewayWorker\\Gateway", 'routerBind');
 
         $backrace                = debug_backtrace();
