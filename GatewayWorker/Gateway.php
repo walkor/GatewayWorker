@@ -53,7 +53,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    public $lanPort = '127.0.0.1';
+    public $lanPort = 0;
 
     /**
      * gateway 内部通讯起始端口，每个 gateway 实例应该都不同，步长1000
