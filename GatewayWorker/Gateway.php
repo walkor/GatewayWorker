@@ -353,7 +353,7 @@ class Gateway extends Worker
             // 所以不记录日志，只是关闭连接
             $time_diff = 2;
             if (time() - $this->_startTime >= $time_diff) {
-                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready';
+                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://wiki.workerman.net/Error3';
                 $this->log($msg);
             }
             $connection->destroy();
