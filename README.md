@@ -11,42 +11,6 @@ GatewayWorker windows 版本
 ======================
 Windows 版本GatewayWorker 在这里 https://github.com/walkor/GatewayWorker-for-win
 
-启动
-=======
-以debug方式启动
-
-```php start.php start```
-
-以daemon方式启动
-
-```php start.php start -d```
-
-停止
-
-```php start.php stop```
-
-平滑重启
-
-```php start.php reload```
-
-查看运行状态
-
-```php start.php status```
-
-Applications\YourApp测试方法
-======
-使用telnet命令测试（不要使用windows再带的telnet）
-```shell
- telnet 127.0.0.1 8282
-Trying 127.0.0.1...
-Connected to 127.0.0.1.
-Escape character is '^]'.
-Hello 3
-3 login
-haha
-3 said haha
-```
-
 手册
 =======
 http://www.workerman.net/gatewaydoc/
