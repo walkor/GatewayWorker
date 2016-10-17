@@ -1,6 +1,6 @@
 {
     "name"  : "workerman/gateway-worker",
-    "keywords": ["distributed,communication"],
+    "keywords": ["distributed","communication"],
     "homepage": "http://www.workerman.net",
     "license" : "MIT",
     "require": {
