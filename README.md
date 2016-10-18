@@ -7,9 +7,11 @@ GatewayWorker使用经典的Gateway和Worker进程模型。Gateway进程负责�
 
 GatewayWorker提供非常方便的API，可以全局广播数据、可以向某个群体广播数据、也可以向某个特定客户端推送数据。配合Workerman的定时器，也可以定时推送数据。
 
-GatewayWorker windows 版本
-======================
-Windows 版本GatewayWorker 在这里 https://github.com/walkor/GatewayWorker-for-win
+安装
+=======
+```
+composer reuqire workerman/gateway-worker
+```
 
 手册
 =======
