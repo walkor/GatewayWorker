@@ -10,7 +10,7 @@ GatewayWorker提供非常方便的API，可以全局广播数据、可以向某�
 安装
 =======
 ```
-composer reuqire workerman/gateway-worker
+composer require workerman/gateway-worker
 ```
 
 手册
