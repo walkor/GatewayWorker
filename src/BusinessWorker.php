@@ -232,7 +232,7 @@ class BusinessWorker extends Worker
     {
         // 防止进程立刻退出
         $worker->reloadable = false;
-        // 延迟 0.01 秒退出，避免 BusinessWorker 瞬间全部退出导致没有可用的 BusinessWorker 进程
+        // 延迟 0.05 秒退出，避免 BusinessWorker 瞬间全部退出导致没有可用的 BusinessWorker 进程
         Timer::add(0.05, array('Workerman\Worker', 'stopAll'));
         // 执行用户定义的 onWorkerReload 回调
         if ($this->_onWorkerReload) {
