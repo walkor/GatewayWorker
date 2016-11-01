@@ -20,7 +20,7 @@ http://www.workerman.net/gatewaydoc/
 安装内核
 =======
 
-如果开发者比较熟悉GatewayWorker，可以使用composer来安装gatewayWorker内核
+只安装GatewayWorker内核文件（不包含start_gateway.php start_businessworker.php等启动文件）
 ```
 composer require workerman/gateway-worker
 ```
