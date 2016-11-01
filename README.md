@@ -7,15 +7,23 @@ GatewayWorker使用经典的Gateway和Worker进程模型。Gateway进程负责�
 
 GatewayWorker提供非常方便的API，可以全局广播数据、可以向某个群体广播数据、也可以向某个特定客户端推送数据。配合Workerman的定时器，也可以定时推送数据。
 
-安装
-=======
-```
-composer require workerman/gateway-worker
-```
+快速开始
+======
+开发者可以从一个简单的demo开始(demo中包含了GatewayWorker内核)<br>
+[点击这里下载demo](http://www.workerman.net/download/GatewayWorker.zip)。<br>
+demo说明见源码readme。
 
 手册
 =======
 http://www.workerman.net/gatewaydoc/
+
+安装内核
+=======
+
+如果开发者比较熟悉GatewayWorker，可以使用composer来安装gatewayWorker内核
+```
+composer require workerman/gateway-worker
+```
 
 使用GatewayWorker开发的项目
 =======
