@@ -9,7 +9,7 @@ GatewayWorker提供非常方便的API，可以全局广播数据、可以向某�
 
 快速开始
 ======
-开发者可以从一个简单的demo开始(demo中包含了GatewayWorker内核)<br>
+开发者可以从一个简单的demo开始(demo中包含了GatewayWorker内核，以及start_gateway.php start_business.php等启动入口文件)<br>
 [点击这里下载demo](http://www.workerman.net/download/GatewayWorker.zip)。<br>
 demo说明见源码readme。
 
@@ -20,7 +20,7 @@ http://www.workerman.net/gatewaydoc/
 安装内核
 =======
 
-只安装GatewayWorker内核文件（不包含start_gateway.php start_businessworker.php等启动文件）
+只安装GatewayWorker内核文件（不包含start_gateway.php start_businessworker.php等启动入口文件）
 ```
 composer require workerman/gateway-worker
 ```
