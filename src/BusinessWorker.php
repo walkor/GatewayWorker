@@ -169,6 +169,7 @@ class BusinessWorker extends Worker
         $this->_onWorkerStart  = $this->onWorkerStart;
         $this->_onWorkerReload = $this->onWorkerReload;
         $this->_onWorkerStop = $this->onWorkerStop;
+        $this->onWorkerStop   = array($this, 'onWorkerStop');
         $this->onWorkerStart   = array($this, 'onWorkerStart');
         $this->onWorkerReload  = array($this, 'onWorkerReload');
         parent::run();
