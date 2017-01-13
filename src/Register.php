@@ -95,7 +95,7 @@ class Register extends Worker
     public function onConnect($connection)
     {
         $connection->timeout_timerid = Timer::add(10, function () use ($connection) {
-            echo "Register auth timeout (".$connection->getRemoteIp()."). See http://wiki.workerman.net/Error4\n";
+            self::log("Register auth timeout (".$connection->getRemoteIp()."). See http://wiki.workerman.net/Error4 for detail");
             $connection->close();
         }, null, false);
     }
@@ -104,7 +104,7 @@ class Register extends Worker
      * 设置消息回调
      *
      * @param \Workerman\Connection\ConnectionInterface $connection
-     * @param string                                    $data
+     * @param string                                    $buffer
      * @return void
      */
     public function onMessage($connection, $buffer)
@@ -113,8 +113,8 @@ class Register extends Worker
         Timer::del($connection->timeout_timerid);
         $data       = @json_decode($buffer, true);
         if (empty($data['event'])) {
-            $error = "Bad request for Register service. Request info(IP:".$connection->getRemoteIp().", Request Buffer:$buffer). See http://wiki.workerman.net/Error4\n";
-            echo $error;
+            $error = "Bad request for Register service. Request info(IP:".$connection->getRemoteIp().", Request Buffer:$buffer). See http://wiki.workerman.net/Error4 for detail";
+            self::log($error);
             return $connection->close($error);
         }
         $event      = $data['event'];
@@ -128,7 +128,7 @@ class Register extends Worker
                     return $connection->close();
                 }
                 if ($secret_key !== $this->secretKey) {
-                    echo "Register: Key does not match $secret_key !== {$this->secretKey}\n";
+                    self::log("Register: Key does not match ".var_export($secret_key, true)." !== ".var_export($this->secretKey, true));
                     return $connection->close();
                 }
                 $this->_gatewayConnections[$connection->id] = $data['address'];
@@ -137,7 +137,7 @@ class Register extends Worker
             // 是 worker 连接
             case 'worker_connect':
                 if ($secret_key !== $this->secretKey) {
-                    echo "Register: Key does not match $secret_key !== {$this->secretKey}\n";
+                    self::log("Register: Key does not match ".var_export($secret_key, true)." !== ".var_export($this->secretKey, true));
                     return $connection->close();
                 }
                 $this->_workerConnections[$connection->id] = $connection;
@@ -146,7 +146,7 @@ class Register extends Worker
             case 'ping':
                 break;
             default:
-                echo "Register unknown event:$event IP: ".$connection->getRemoteIp()." Buffer:$buffer. See http://wiki.workerman.net/Error4\n";
+                self::log("Register unknown event:$event IP: ".$connection->getRemoteIp()." Buffer:$buffer. See http://wiki.workerman.net/Error4 for detail");
                 $connection->close();
         }
     }
