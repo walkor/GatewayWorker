@@ -528,13 +528,15 @@ class Gateway extends Worker
                     self::log("Gateway: Worker key does not match ".var_export($this->secretKey, true)." !== ". var_export($this->secretKey));
                     return $connection->close();
                 }
-                $connection->key = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
+                $key = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
                 // 在一台服务器上businessWorker->name不能相同
-                if (isset($this->_workerConnections[$connection->key])) {
-                    self::log("Gateway: Worker->name conflict. Key:{$connection->key}");
+                if (isset($this->_workerConnections[$key])) {
+                    self::log("Gateway: Worker->name conflict. Key:{$key}");
+		    $connection->close();
                     return;
                 }
-                $this->_workerConnections[$connection->key] = $connection;
+		$connection->key = $key;
+                $this->_workerConnections[$key] = $connection;
                 $connection->authorized = true;
                 return;
             // GatewayClient连接Gateway
