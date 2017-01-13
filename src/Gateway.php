@@ -111,6 +111,21 @@ class Gateway extends Worker
      */
     public $router = null;
 
+
+    /**
+     * gateway进程转发给businessWorker进程的发送缓冲区大小
+     *
+     * @var int
+     */
+    public $sendToWorkerBufferSize = 10240000;
+
+    /**
+     * gateway进程将数据发给客户端时每个客户端发送缓冲区大小
+     *
+     * @var int
+     */
+    public $sendToClientBufferSize = 1024000;
+
     /**
      * 协议加速
      *
@@ -296,9 +311,11 @@ class Gateway extends Worker
             'flag'          => 0,
         );
         // 连接的 session
-        $connection->session = '';
+        $connection->session                       = '';
         // 该连接的心跳参数
-        $connection->pingNotResponseCount = -1;
+        $connection->pingNotResponseCount          = -1;
+        // 该链接发送缓冲区大小
+        $connection->maxSendBufferSize             = $this->sendToClientBufferSize;
         // 保存客户端连接 connection 对象
         $this->_clientConnections[$connection->id] = $connection;
 
@@ -343,7 +360,7 @@ class Gateway extends Worker
             /** @var TcpConnection $worker_connection */
             $worker_connection = call_user_func($this->router, $this->_workerConnections, $connection, $cmd, $body);
             if (false === $worker_connection->send($gateway_data)) {
-                $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://wiki.workerman.net/Error2";
+                $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://wiki.workerman.net/Error2 for detail";
                 $this->log($msg);
                 return false;
             }
@@ -353,7 +370,7 @@ class Gateway extends Worker
             // 所以不记录日志，只是关闭连接
             $time_diff = 2;
             if (time() - $this->_startTime >= $time_diff) {
-                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://wiki.workerman.net/Error3';
+                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://wiki.workerman.net/Error3 for detail';
                 $this->log($msg);
             }
             $connection->destroy();
@@ -485,9 +502,7 @@ class Gateway extends Worker
      */
     public function onWorkerConnect($connection)
     {
-        if (TcpConnection::$defaultMaxSendBufferSize === $connection->maxSendBufferSize) {
-            $connection->maxSendBufferSize = 50 * 1024 * 1024;
-        }
+        $connection->maxSendBufferSize = $this->sendToWorkerBufferSize;
         $connection->authorized = $this->secretKey ? false : true;
     }
 
@@ -502,7 +517,7 @@ class Gateway extends Worker
     {
         $cmd = $data['cmd'];
         if (empty($connection->authorized) && $cmd !== GatewayProtocol::CMD_WORKER_CONNECT && $cmd !== GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT) {
-            echo "Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort() . "\n";
+            self::log("Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort());
             return $connection->close();
         }
         switch ($cmd) {
@@ -510,10 +525,15 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_WORKER_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    echo "Gateway: Worker key does not match {$this->secretKey} !== {$this->secretKey}\n";
+                    self::log("Gateway: Worker key does not match ".var_export($this->secretKey, true)." !== ". var_export($this->secretKey));
                     return $connection->close();
                 }
-                $connection->key                            = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
+                $connection->key = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
+                // 在一台服务器上businessWorker->name不能相同
+                if (isset($this->_workerConnections[$connection->key])) {
+                    self::log("Gateway: Worker->name conflict. Key:{$connection->key}");
+                    return;
+                }
                 $this->_workerConnections[$connection->key] = $connection;
                 $connection->authorized = true;
                 return;
@@ -521,7 +541,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    echo "Gateway: GatewayClient key does not match {$this->secretKey} !== {$this->secretKey}\n";
+                    self::log("Gateway: GatewayClient key does not match ".var_export($this->secretKey, true)." !== ".var_export($this->secretKey, true));
                     return $connection->close();
                 }
                 $connection->authorized = true;
@@ -615,7 +635,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_BIND_UID:
                 $uid = $data['ext_data'];
                 if (empty($uid)) {
-                    echo "uid empty" . var_export($uid, true);
+                    echo "bindUid(client_id, uid) uid empty, uid=" . var_export($uid, true);
                     return;
                 }
                 $connection_id = $data['connection_id'];
@@ -666,7 +686,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_JOIN_GROUP:
                 $group = $data['ext_data'];
                 if (empty($group)) {
-                    echo "group empty" . var_export($group, true);
+                    echo "join(group) group empty, group=" . var_export($group, true);
                     return;
                 }
                 $connection_id = $data['connection_id'];
@@ -684,7 +704,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_LEAVE_GROUP:
                 $group = $data['ext_data'];
                 if (empty($group)) {
-                    echo "leave group empty" . var_export($group, true);
+                    echo "leave(group) group empty, group=" . var_export($group, true);
                     return;
                 }
                 $connection_id = $data['connection_id'];
