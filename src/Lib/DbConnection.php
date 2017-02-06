@@ -1926,7 +1926,7 @@ class DbConnection
     }
 
     /**
-     * 返回最后一条直行的 sql
+     * 返回最后一条执行的 sql
      *
      * @return  string
      */
