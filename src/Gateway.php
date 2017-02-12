@@ -226,7 +226,7 @@ class Gateway extends Worker
      * connectionId 记录器
      * @var int
      */
-    protected static $_connectionIdRecorder = 1;
+    protected static $_connectionIdRecorder = 0;
 
     /**
      * 用于保持长连接的心跳时间间隔
@@ -335,10 +335,14 @@ class Gateway extends Worker
     {
         $max_unsigned_int = 4294967295;
         if (self::$_connectionIdRecorder >= $max_unsigned_int) {
-            self::$_connectionIdRecorder = 1;
+            self::$_connectionIdRecorder = 0;
         }
-        $id = self::$_connectionIdRecorder ++;
-        return $id;
+        while(++self::$_connectionIdRecorder <= $max_unsigned_int) {
+            if(!isset($this->_clientConnections[self::$_connectionIdRecorder])) {
+                break;
+            }
+        }
+        return self::$_connectionIdRecorder;
     }
 
     /**
