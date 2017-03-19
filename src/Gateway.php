@@ -558,8 +558,14 @@ class Gateway extends Worker
                     $this->_clientConnections[$data['connection_id']]->send($data['body']);
                 }
                 return;
-            // 关闭客户端连接，Gateway::closeClient($client_id);
+            // 踢出用户，Gateway::closeClient($client_id, $message);
             case GatewayProtocol::CMD_KICK:
+                if (isset($this->_clientConnections[$data['connection_id']])) {
+                    $this->_clientConnections[$data['connection_id']]->close($data['body']);
+                }
+                return;
+            // 立即销毁用户连接, Gateway::destroyClient($client_id);
+            case GatewayProtocol::CMD_DESTROY:
                 if (isset($this->_clientConnections[$data['connection_id']])) {
                     $this->_clientConnections[$data['connection_id']]->destroy();
                 }
