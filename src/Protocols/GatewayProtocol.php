@@ -51,7 +51,12 @@ class GatewayProtocol
     const CMD_SEND_TO_ALL = 6;
 
     // 发给gateway的踢出用户
+    // 1、如果有待发消息，将在发送完后立即销毁用户连接
+    // 2、如果无待发消息，将立即销毁用户连接
     const CMD_KICK = 7;
+
+    // 发给gateway的立即销毁用户连接
+    const CMD_DESTROY = 8;
 
     // 发给gateway，通知用户session更新
     const CMD_UPDATE_SESSION = 9;

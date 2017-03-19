@@ -407,15 +407,16 @@ class Gateway
     }
 
     /**
-     * 关闭某个客户端
+     * 踢掉某个客户端，并以$message通知被踢掉客户端
      *
      * @param int $client_id
+     * @param string $message
      * @return bool
      */
-    public static function closeClient($client_id)
+    public static function closeClient($client_id, $message = null)
     {
         if ($client_id === Context::$client_id) {
-            return self::closeCurrentClient();
+            return self::closeCurrentClient($message);
         } // 不是发给当前用户则使用存储中的地址
         else {
             $address_data = Context::clientIdToAddress($client_id);
@@ -423,22 +424,60 @@ class Gateway
                 return false;
             }
             $address      = long2ip($address_data['local_ip']) . ":{$address_data['local_port']}";
-            return self::kickAddress($address, $address_data['connection_id']);
+            return self::kickAddress($address, $address_data['connection_id'], $message);
         }
     }
 
     /**
-     * 踢掉当前客户端
+     * 踢掉当前客户端，并以$message通知被踢掉客户端
      *
+     * @param string $message
      * @return bool
      * @throws Exception
      */
-    public static function closeCurrentClient()
+    public static function closeCurrentClient($message = null)
     {
         if (!Context::$connection_id) {
             throw new Exception('closeCurrentClient can not be called in async context');
         }
-        return self::kickAddress(long2ip(Context::$local_ip) . ':' . Context::$local_port, Context::$connection_id);
+        $address = long2ip(Context::$local_ip) . ':' . Context::$local_port;
+        return self::kickAddress($address, Context::$connection_id, $message);
+    }
+
+    /**
+     * 踢掉某个客户端并直接立即销毁相关连接
+     *
+     * @param int $client_id
+     * @return bool
+     */
+    public static function destoryClient($client_id)
+    {
+        if ($client_id === Context::$client_id) {
+            return self::destoryCurrentClient();
+        } // 不是发给当前用户则使用存储中的地址
+        else {
+            $address_data = Context::clientIdToAddress($client_id);
+            if (!$address_data) {
+                return false;
+            }
+            $address      = long2ip($address_data['local_ip']) . ":{$address_data['local_port']}";
+            return self::destroyAddress($address, $address_data['connection_id']);
+        }
+    }
+
+    /**
+     * 踢掉当前客户端并直接立即销毁相关连接
+     *
+     * @return bool
+     * @throws Exception
+     */
+    public static function destoryCurrentClient()
+    {
+        if (!Context::$connection_id) {
+            throw new Exception('destoryCurrentClient can not be called in async context');
+        }
+        $address = long2ip(Context::$local_ip) . ':' . Context::$local_port;
+        return self::destroyAddress($address, Context::$connection_id);
     }
 
     /**
@@ -791,10 +830,26 @@ class Gateway
      * @param int    $connection_id
      * @return bool
      */
-    protected static function kickAddress($address, $connection_id)
+    protected static function kickAddress($address, $connection_id, $message)
     {
         $gateway_data                  = GatewayProtocol::$empty;
         $gateway_data['cmd']           = GatewayProtocol::CMD_KICK;
+        $gateway_data['connection_id'] = $connection_id;
+        $gateway_data['body'] = $message;
+        return self::sendToGateway($address, $gateway_data);
+    }
+
+    /**
+     * 销毁某个网关的 socket
+     *
+     * @param string $address
+     * @param int    $connection_id
+     * @return bool
+     */
+    protected static function destroyAddress($address, $connection_id)
+    {
+        $gateway_data                  = GatewayProtocol::$empty;
+        $gateway_data['cmd']           = GatewayProtocol::CMD_DESTROY;
         $gateway_data['connection_id'] = $connection_id;
         return self::sendToGateway($address, $gateway_data);
     }
