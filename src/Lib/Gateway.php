@@ -675,7 +675,7 @@ class Gateway
     }
 
     /**
-     * 想某个用户网关发送命令和消息
+     * 向某个用户网关发送命令和消息
      *
      * @param int    $client_id
      * @param int    $cmd
