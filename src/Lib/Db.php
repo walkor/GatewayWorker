@@ -37,8 +37,6 @@ class Db
      */
     public static function instance($config_name)
     {
-        echo "GatewayWorker/Lib/DbConnection has been deprecated. Plese use Workerman/MySQL. 
-        See http://doc3.workerman.net/component/workerman-mysql.html for detail\n";
         if (!isset(DbConfig::$$config_name)) {
             echo "\\Config\\Db::$config_name not set\n";
             throw new Exception("\\Config\\Db::$config_name not set\n");
