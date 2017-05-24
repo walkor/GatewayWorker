@@ -1708,6 +1708,7 @@ class DbConnection
                         $this->settings['charset'] : 'utf8')
             ));
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
         $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     }
 
