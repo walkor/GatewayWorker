@@ -1761,7 +1761,10 @@ class DbConnection
                 }
             } else {
                 $this->rollBackTrans();
-                throw $e;
+                $msg = $e->getMessage();
+                $err_msg = "SQL:".$this->lastSQL()." ".$msg;
+                $exception = new \PDOException($err_msg, (int)$e->getCode());
+                throw $exception;
             }
         }
         $this->parameters = array();
