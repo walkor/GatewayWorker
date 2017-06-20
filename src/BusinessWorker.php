@@ -20,6 +20,7 @@ use Workerman\Lib\Timer;
 use Workerman\Connection\AsyncTcpConnection;
 use GatewayWorker\Protocols\GatewayProtocol;
 use GatewayWorker\Lib\Context;
+use GatewayWorker\Lib\Gateway;
 
 /**
  *
@@ -148,6 +149,13 @@ class BusinessWorker extends Worker
      * @var callback
      */
     protected $_eventOnClose = null;
+
+    /**
+     * SESSION 版本缓存
+     *
+     * @var array
+     */
+    protected $_sessionVersion = array();
 
     /**
      * 用于保持长连接的心跳时间间隔
@@ -347,11 +355,19 @@ class BusinessWorker extends Worker
             'GATEWAY_PORT'      => $data['gateway_port'],
             'GATEWAY_CLIENT_ID' => Context::$client_id,
         );
-        // 尝试解析 session
-        if ($data['ext_data'] != '') {
-            Context::$old_session = $_SESSION = Context::sessionDecode($data['ext_data']);
+        // 检查session版本，如果是过期的session数据则拉取最新的数据
+        if (isset($this->_sessionVersion[Context::$client_id]) && $this->_sessionVersion[Context::$client_id] !== crc32($data['ext_data'])) {
+            $_SESSION = Context::$old_session = Gateway::getSession(Context::$client_id);
         } else {
-            Context::$old_session = $_SESSION = null;
+            if (!isset($this->_sessionVersion[Context::$client_id])) {
+                $this->_sessionVersion[Context::$client_id] = crc32($data['ext_data']);
+            }
+            // 尝试解析 session
+            if ($data['ext_data'] != '') {
+                Context::$old_session = $_SESSION = Context::sessionDecode($data['ext_data']);
+            } else {
+                Context::$old_session = $_SESSION = null;
+            }
         }
 
         if ($this->processTimeout) {
@@ -370,6 +386,7 @@ class BusinessWorker extends Worker
                 }
                 break;
             case GatewayProtocol::CMD_ON_CLOSE:
+                unset($this->_sessionVersion[Context::$client_id]);
                 if ($this->_eventOnClose) {
                     call_user_func($this->_eventOnClose, Context::$client_id);
                 }
@@ -385,9 +402,10 @@ class BusinessWorker extends Worker
         }
 
         // 判断 session 是否被更改
-        if ($_SESSION !== Context::$old_session) {
+        if ($_SESSION !== Context::$old_session && $cmd !== GatewayProtocol::CMD_ON_CLOSE) {
             $session_str_now = $_SESSION !== null ? Context::sessionEncode($_SESSION) : '';
             \GatewayWorker\Lib\Gateway::setSocketSession(Context::$client_id, $session_str_now);
+            $this->_sessionVersion[Context::$client_id] = crc32($session_str_now);
         }
 
         Context::clear();
