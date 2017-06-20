@@ -1826,6 +1826,7 @@ class DbConnection
         $rawStatement = explode(" ", $query);
 
         $statement = strtolower(trim($rawStatement[0]));
+        $statement = trim($statement, '('); //避免SQL语句加括号后后继判断不执行
         if ($statement === 'select' || $statement === 'show') {
             return $this->sQuery->fetchAll($fetchmode);
         } elseif ($statement === 'update' || $statement === 'delete') {
