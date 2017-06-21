@@ -20,7 +20,6 @@ use Workerman\Lib\Timer;
 use Workerman\Connection\AsyncTcpConnection;
 use GatewayWorker\Protocols\GatewayProtocol;
 use GatewayWorker\Lib\Context;
-use GatewayWorker\Lib\Gateway;
 
 /**
  *
@@ -357,7 +356,7 @@ class BusinessWorker extends Worker
         );
         // 检查session版本，如果是过期的session数据则拉取最新的数据
         if (isset($this->_sessionVersion[Context::$client_id]) && $this->_sessionVersion[Context::$client_id] !== crc32($data['ext_data'])) {
-            $_SESSION = Context::$old_session = Gateway::getSession(Context::$client_id);
+            $_SESSION = Context::$old_session = \GatewayWorker\Lib\Gateway::getSession(Context::$client_id);
         } else {
             if (!isset($this->_sessionVersion[Context::$client_id])) {
                 $this->_sessionVersion[Context::$client_id] = crc32($data['ext_data']);
