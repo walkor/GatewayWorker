@@ -247,8 +247,8 @@ class Gateway extends Worker
 		$this->_gatewayPort = substr(strrchr($socket_name,':'),1);
         $this->router = array("\\GatewayWorker\\Gateway", 'routerBind');
 
-        $backrace                = debug_backtrace();
-        $this->_autoloadRootPath = dirname($backrace[0]['file']);
+        $backtrace               = debug_backtrace();
+        $this->_autoloadRootPath = dirname($backtrace[0]['file']);
     }
 
     /**
