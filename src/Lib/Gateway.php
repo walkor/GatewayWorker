@@ -142,7 +142,7 @@ class Gateway
      *
      * @param int    $client_id
      * @param string $message
-     * @return bool
+     * @return void
      */
     public static function sendToClient($client_id, $message)
     {
@@ -255,6 +255,7 @@ class Gateway
      * 获取某个组的连接信息
      *
      * @param string $group
+     *
      * @return array
      */
     public static function getClientSessionsByGroup($group)
@@ -411,7 +412,7 @@ class Gateway
      *
      * @param int $client_id
      * @param string $message
-     * @return bool
+     * @return void
      */
     public static function closeClient($client_id, $message = null)
     {
@@ -485,11 +486,11 @@ class Gateway
      *
      * @param int        $client_id
      * @param int|string $uid
-     * @return bool
+     * @return void
      */
     public static function bindUid($client_id, $uid)
     {
-        return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_BIND_UID, '', $uid);
+        self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_BIND_UID, '', $uid);
     }
 
     /**
@@ -497,11 +498,11 @@ class Gateway
      *
      * @param int        $client_id
      * @param int|string $uid
-     * @return bool
+     * @return void
      */
     public static function unbindUid($client_id, $uid)
     {
-        return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UNBIND_UID, '', $uid);
+        self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UNBIND_UID, '', $uid);
     }
 
     /**
@@ -509,11 +510,11 @@ class Gateway
      *
      * @param int        $client_id
      * @param int|string $group
-     * @return bool
+     * @return void
      */
     public static function joinGroup($client_id, $group)
     {
-        return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_JOIN_GROUP, '', $group);
+        self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_JOIN_GROUP, '', $group);
     }
 
     /**
@@ -521,11 +522,12 @@ class Gateway
      *
      * @param int        $client_id
      * @param int|string $group
-     * @return bool
+     *
+     * @return void
      */
     public static function leaveGroup($client_id, $group)
     {
-        return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_LEAVE_GROUP, '', $group);
+        self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_LEAVE_GROUP, '', $group);
     }
 
     /**
@@ -533,6 +535,8 @@ class Gateway
      *
      * @param int|string|array $uid
      * @param string           $message
+     *
+     * @return void
      */
     public static function sendToUid($uid, $message)
     {
@@ -556,6 +560,8 @@ class Gateway
      * @param string           $message           消息
      * @param array            $exclude_client_id 不给这些client_id发
      * @param bool             $raw               发送原始数据（即不调用gateway的协议的encode方法）
+     *
+     * @return void
      */
     public static function sendToGroup($group, $message, $exclude_client_id = null, $raw = false)
     {
@@ -625,6 +631,8 @@ class Gateway
      *
      * @param int   $client_id
      * @param array $session
+     *
+     * @return void
      */
     public static function setSession($client_id, array $session)
     {
@@ -632,7 +640,7 @@ class Gateway
             $_SESSION = $session;
             Context::$old_session = $_SESSION;
         }
-        return self::setSocketSession($client_id, Context::sessionEncode($session));
+        self::setSocketSession($client_id, Context::sessionEncode($session));
     }
     
     /**
@@ -640,6 +648,8 @@ class Gateway
      *
      * @param int   $client_id
      * @param array $session
+     *
+     * @return void
      */
     public static function updateSession($client_id, array $session)
     {
@@ -647,7 +657,7 @@ class Gateway
             $_SESSION = $session + (array)$_SESSION;
             Context::$old_session = $_SESSION;
         }
-        return self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UPDATE_SESSION, '', Context::sessionEncode($session));
+        self::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UPDATE_SESSION, '', Context::sessionEncode($session));
     }
     
     /**
@@ -800,6 +810,8 @@ class Gateway
      *
      * @param string $gateway_data
      * @throws Exception
+     *
+     * @return void
      */
     protected static function sendToAllGateway($gateway_data)
     {
