@@ -795,7 +795,7 @@ class Gateway extends Worker
                 return;
             default :
                 $err_msg = "gateway inner pack err cmd=$cmd";
-                throw new \Exception($err_msg);
+                echo $err_msg;
         }
     }
 
