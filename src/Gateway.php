@@ -614,7 +614,7 @@ class Gateway extends Worker
                     }
                     $session = Context::sessionDecode($this->_clientConnections[$data['connection_id']]->session);
                     $session_for_merge = Context::sessionDecode($data['ext_data']);
-                    $session = $session_for_merge + $session;
+                    $session = array_replace_recursive($session, $session_for_merge);
                     $this->_clientConnections[$data['connection_id']]->session = Context::sessionEncode($session);
                 }
                 return;
