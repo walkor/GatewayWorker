@@ -150,6 +150,13 @@ class BusinessWorker extends Worker
     protected $_eventOnClose = null;
 
     /**
+     * websocket回调
+     *
+     * @var null
+     */
+    protected $_eventOnWebSocketConnect = null;
+
+    /**
      * SESSION 版本缓存
      *
      * @var array
@@ -231,6 +238,10 @@ class BusinessWorker extends Worker
 
         if (is_callable($this->eventHandler . '::onClose')) {
             $this->_eventOnClose = $this->eventHandler . '::onClose';
+        }
+
+        if (is_callable($this->eventHandler . '::onWebSocketConnect')) {
+            $this->_eventOnWebSocketConnect = $this->eventHandler . '::onWebSocketConnect';
         }
 
         // 如果Register服务器不在本地服务器，则需要保持心跳
@@ -374,7 +385,7 @@ class BusinessWorker extends Worker
         }
         // 尝试执行 Event::onConnection、Event::onMessage、Event::onClose
         switch ($cmd) {
-            case GatewayProtocol::CMD_ON_CONNECTION:
+            case GatewayProtocol::CMD_ON_CONNECT:
                 if ($this->_eventOnConnect) {
                     call_user_func($this->_eventOnConnect, Context::$client_id);
                 }
@@ -388,6 +399,11 @@ class BusinessWorker extends Worker
                 unset($this->_sessionVersion[Context::$client_id]);
                 if ($this->_eventOnClose) {
                     call_user_func($this->_eventOnClose, Context::$client_id);
+                }
+                break;
+            case GatewayProtocol::CMD_ON_WEBSOCKET_CONNECT:
+                if ($this->_eventOnWebSocketConnect) {
+                    call_user_func($this->_eventOnWebSocketConnect, Context::$client_id, $data['body']);
                 }
                 break;
         }
