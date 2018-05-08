@@ -38,7 +38,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '3.0.7';
+    const VERSION = '3.0.8';
 
     /**
      * 本机 IP
@@ -322,9 +322,22 @@ class Gateway extends Worker
         // 如果用户有自定义 onConnect 回调，则执行
         if ($this->_onConnect) {
             call_user_func($this->_onConnect, $connection);
+        } elseif ($connection->protocol === '\Workerman\Protocols\Websocket') {
+            $connection->onWebSocketConnect = array($this, 'onWebsocketConnect');
         }
 
-        $this->sendToWorker(GatewayProtocol::CMD_ON_CONNECTION, $connection);
+        $this->sendToWorker(GatewayProtocol::CMD_ON_CONNECT, $connection);
+    }
+
+    /**
+     * websocket握手时触发
+     *
+     * @param $connection
+     * @param $http_buffer
+     */
+    public function onWebsocketConnect($connection, $http_buffer)
+    {
+        $this->sendToWorker(GatewayProtocol::CMD_ON_WEBSOCKET_CONNECT, $connection, array('get' => $_GET, 'server' => $_SERVER, 'cookie' => $_COOKIE));
     }
     
     /**
@@ -537,10 +550,10 @@ class Gateway extends Worker
                 // 在一台服务器上businessWorker->name不能相同
                 if (isset($this->_workerConnections[$key])) {
                     self::log("Gateway: Worker->name conflict. Key:{$key}");
-		    $connection->close();
+		            $connection->close();
                     return;
                 }
-		$connection->key = $key;
+		        $connection->key = $key;
                 $this->_workerConnections[$key] = $connection;
                 $connection->authorized = true;
                 return;
@@ -597,6 +610,68 @@ class Gateway extends Worker
                     }
                 }
                 return;
+            case GatewayProtocol::CMD_SELECT:
+                $client_info_array = array();
+                $ext_data = json_decode($data['ext_data'], true);
+                if (!$ext_data) {
+                    echo 'CMD_SELECT ext_data=' . var_export($data['ext_data'], true) . '\r\n';
+                    $buffer = serialize($client_info_array);
+                    $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                    return;
+                }
+                $fields = $ext_data['fields'];
+                $where  = $ext_data['where'];
+                if ($where) {
+                    $connection_box_map = array(
+                        'groups'        => $this->_groupConnections,
+                        'uid'           => $this->_uidConnections
+                    );
+                    // $where = ['groups'=>[x,x..], 'uid'=>[x,x..], 'connection_id'=>[x,x..]]
+                    foreach ($where as $key => $items) {
+                        if ($key !== 'connection_id') {
+                            $connections_box = $connection_box_map[$key];
+                            foreach ($items as $item) {
+                                if (isset($connections_box[$item])) {
+                                    foreach ($connections_box[$item] as $connection_id => $client_connection) {
+                                        if (!isset($client_info_array[$connection_id])) {
+                                            $client_info_array[$connection_id] = array();
+                                            // $fields = ['groups', 'uid', 'session']
+                                            foreach ($fields as $field) {
+                                                $client_info_array[$connection_id][$field] = isset($client_connection->$field) ? $client_connection->$field : null;
+                                            }
+                                        }
+                                    }
+
+                                }
+                            }
+                        } else {
+                            foreach ($items as $connection_id) {
+                                if (isset($this->_clientConnections[$connection_id])) {
+                                    $client_connection = $this->_clientConnections[$connection_id];
+                                    $client_info_array[$connection_id] = array();
+                                    // $fields = ['groups', 'uid', 'session']
+                                    foreach ($fields as $field) {
+                                        $client_info_array[$connection_id][$field] = isset($client_connection->$field) ? $client_connection->$field : null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    foreach ($this->_clientConnections as $connection_id => $client_connection) {
+                        foreach ($fields as $field) {
+                            $client_info_array[$connection_id][$field] = isset($client_connection->$field) ? $client_connection->$field : null;
+                        }
+                    }
+                }
+                $buffer = serialize($client_info_array);
+                $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                return;
+            // 获取在线群组列表
+            case GatewayProtocol::CMD_GET_GROUP_ID_LIST:
+                $buffer = serialize(array_keys($this->_groupConnections));
+                $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                return;
             // 重新赋值 session
             case GatewayProtocol::CMD_SET_SESSION:
                 if (isset($this->_clientConnections[$data['connection_id']])) {
@@ -630,8 +705,8 @@ class Gateway extends Worker
                 }
                 $connection->send(pack('N', strlen($session)) . $session, true);
                 return;
-            // 获得客户端在线状态 Gateway::getALLClientInfo()
-            case GatewayProtocol::CMD_GET_ALL_CLIENT_INFO:
+            // 获得客户端sessions
+            case GatewayProtocol::CMD_GET_ALL_CLIENT_SESSIONS:
                 $client_info_array = array();
                 foreach ($this->_clientConnections as $connection_id => $client_connection) {
                     $client_info_array[$connection_id] = $client_connection->session;
@@ -754,8 +829,8 @@ class Gateway extends Worker
                     }
                 }
                 return;
-            // 获取某用户组成员信息 Gateway::getClientInfoByGroup($group);
-            case GatewayProtocol::CMD_GET_CLINET_INFO_BY_GROUP:
+            // 获取某用户组成员信息 Gateway::getClientSessionsByGroup($group);
+            case GatewayProtocol::CMD_GET_CLINET_SESSUONS_BY_GROUP:
                 $group = $data['ext_data'];
                 if (!isset($this->_groupConnections[$group])) {
                     $buffer = serialize(array());
@@ -798,6 +873,7 @@ class Gateway extends Worker
                 echo $err_msg;
         }
     }
+
 
     /**
      * 当worker连接关闭时
