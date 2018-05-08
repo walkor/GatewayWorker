@@ -36,7 +36,7 @@ namespace GatewayWorker\Protocols;
 class GatewayProtocol
 {
     // 发给worker，gateway有一个新的连接
-    const CMD_ON_CONNECTION = 1;
+    const CMD_ON_CONNECT = 1;
 
     // 发给worker的，客户端有消息
     const CMD_ON_MESSAGE = 3;
@@ -62,7 +62,7 @@ class GatewayProtocol
     const CMD_UPDATE_SESSION = 9;
 
     // 获取在线状态
-    const CMD_GET_ALL_CLIENT_INFO = 10;
+    const CMD_GET_ALL_CLIENT_SESSIONS = 10;
 
     // 判断是否在线
     const CMD_IS_ONLINE = 11;
@@ -89,10 +89,16 @@ class GatewayProtocol
     const CMD_SEND_TO_GROUP = 22;
 
     // 获取组成员
-    const CMD_GET_CLINET_INFO_BY_GROUP = 23;
+    const CMD_GET_CLINET_SESSUONS_BY_GROUP = 23;
 
-    // 获取组成员数
+    // 获取组在线连接数
     const CMD_GET_CLIENT_COUNT_BY_GROUP = 24;
+
+    // 按照条件查找
+    const CMD_SELECT = 25;
+
+    // 获取在线的群组ID
+    const CMD_GET_GROUP_ID_LIST = 26;
 
     // worker连接gateway事件
     const CMD_WORKER_CONNECT = 200;
@@ -108,6 +114,9 @@ class GatewayProtocol
 
     // 发给gateway，覆盖session
     const CMD_SET_SESSION = 204;
+
+    // 当websocket握手时触发，只有websocket协议支持此命令字
+    const CMD_ON_WEBSOCKET_CONNECT = 205;
 
     // 包体是标量
     const FLAG_BODY_IS_SCALAR = 0x01;
