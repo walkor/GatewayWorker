@@ -927,6 +927,25 @@ class Gateway
     }
 
     /**
+     * 取消分组
+     *
+     * @param int|string $group
+     *
+     * @return void
+     */
+    public static function ungroup($group)
+    {
+        if (!static::isValidGroupId($group)) {
+            return false;
+        }
+        $gateway_data            = GatewayProtocol::$empty;
+        $gateway_data['cmd']     = GatewayProtocol::CMD_UNGROUP;
+        $gateway_data['ext_data'] = $group;
+        return static::sendToAllGateway($gateway_data);
+
+    }
+
+    /**
      * 向所有 uid 发送
      *
      * @param int|string|array $uid
