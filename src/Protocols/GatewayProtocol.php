@@ -100,6 +100,9 @@ class GatewayProtocol
     // 获取在线的群组ID
     const CMD_GET_GROUP_ID_LIST = 26;
 
+    // 取消分组
+    const CMD_UNGROUP = 27;
+
     // worker连接gateway事件
     const CMD_WORKER_CONNECT = 200;
 
