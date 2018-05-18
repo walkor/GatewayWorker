@@ -38,7 +38,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '3.0.8';
+    const VERSION = '3.0.9';
 
     /**
      * 本机 IP
@@ -804,6 +804,21 @@ class Gateway extends Worker
                     return;
                 }
                 unset($client_connection->groups[$group], $this->_groupConnections[$group][$connection_id]);
+                return;
+            // 解散分组
+            case GatewayProtocol::CMD_UNGROUP:
+                $group = $data['ext_data'];
+                if (empty($group)) {
+                    echo "leave(group) group empty, group=" . var_export($group, true);
+                    return;
+                }
+                if (empty($this->_groupConnections[$group])) {
+                    return;
+                }
+                foreach ($this->_groupConnections[$group] as $client_connection) {
+                    unset($client_connection->groups[$group]);
+                }
+                unset($this->_groupConnections[$group]);
                 return;
             // 向某个用户组发送消息 Gateway::sendToGroup($group, $msg);
             case GatewayProtocol::CMD_SEND_TO_GROUP:
