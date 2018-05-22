@@ -938,8 +938,8 @@ class Gateway
         if (!static::isValidGroupId($group)) {
             return false;
         }
-        $gateway_data            = GatewayProtocol::$empty;
-        $gateway_data['cmd']     = GatewayProtocol::CMD_UNGROUP;
+        $gateway_data             = GatewayProtocol::$empty;
+        $gateway_data['cmd']      = GatewayProtocol::CMD_UNGROUP;
         $gateway_data['ext_data'] = $group;
         return static::sendToAllGateway($gateway_data);
 
