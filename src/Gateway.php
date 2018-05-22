@@ -38,7 +38,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '3.0.9';
+    const VERSION = '3.1.0';
 
     /**
      * 本机 IP
@@ -378,7 +378,7 @@ class Gateway extends Worker
             $worker_connection = call_user_func($this->router, $this->_workerConnections, $connection, $cmd, $body);
             if (false === $worker_connection->send($gateway_data)) {
                 $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://wiki.workerman.net/Error2";
-                $this->log($msg);
+                static::log($msg);
                 return false;
             }
         } // 没有可用的 worker
@@ -388,7 +388,7 @@ class Gateway extends Worker
             $time_diff = 2;
             if (time() - $this->_startTime >= $time_diff) {
                 $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://wiki.workerman.net/Error3';
-                $this->log($msg);
+                static::log($msg);
             }
             $connection->destroy();
             return false;
@@ -897,7 +897,6 @@ class Gateway extends Worker
      */
     public function onWorkerClose($connection)
     {
-        // $this->log("{$connection->key} CLOSE INNER_CONNECTION\n");
         if (isset($connection->key)) {
             unset($this->_workerConnections[$connection->key]);
         }
@@ -1004,5 +1003,15 @@ class Gateway extends Worker
         if ($this->_onWorkerStop) {
             call_user_func($this->_onWorkerStop, $this);
         }
+    }
+
+    /**
+     * Log.
+     * @param string $msg
+     */
+    public static function log($msg){
+        Timer::add(1, function() use ($msg) {
+            Worker::log($msg);
+        }, null, false);
     }
 }
