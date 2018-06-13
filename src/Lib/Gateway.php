@@ -714,9 +714,7 @@ class Gateway
         $addresses = static::getAllGatewayAddress();
         $gateway_buffer_array = array();
         $gateway_buffer = GatewayProtocol::encode($gateway_data);
-        if (!is_array($gateway_data)) {
-            $gateway_buffer = static::$secretKey ? static::generateAuthBuffer() . $gateway_buffer : $gateway_buffer;
-        }
+        $gateway_buffer = static::$secretKey ? static::generateAuthBuffer() . $gateway_buffer : $gateway_buffer;
         foreach ($addresses as $address) {
             $gateway_buffer_array[$address] = $gateway_buffer;
         }
