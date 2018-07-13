@@ -845,7 +845,7 @@ class Gateway extends Worker
                 }
                 return;
             // 获取某用户组成员信息 Gateway::getClientSessionsByGroup($group);
-            case GatewayProtocol::CMD_GET_CLINET_SESSUONS_BY_GROUP:
+            case GatewayProtocol::CMD_GET_CLIENT_SESSUONS_BY_GROUP:
                 $group = $data['ext_data'];
                 if (!isset($this->_groupConnections[$group])) {
                     $buffer = serialize(array());
