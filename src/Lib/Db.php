@@ -45,7 +45,7 @@ class Db
         if (empty(self::$instance[$config_name])) {
             $config                       = DbConfig::$$config_name;
             self::$instance[$config_name] = new DbConnection($config['host'], $config['port'],
-                $config['user'], $config['password'], $config['dbname']);
+                $config['user'], $config['password'], $config['dbname'],$config['charset']);
         }
         return self::$instance[$config_name];
     }
