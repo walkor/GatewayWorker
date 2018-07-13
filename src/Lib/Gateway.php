@@ -220,7 +220,7 @@ class Gateway
         if (!$group) {
             $gateway_data['cmd']      = GatewayProtocol::CMD_GET_ALL_CLIENT_SESSIONS;
         } else {
-            $gateway_data['cmd']      = GatewayProtocol::CMD_GET_CLINET_SESSUONS_BY_GROUP;
+            $gateway_data['cmd']      = GatewayProtocol::CMD_GET_CLIENT_SESSUONS_BY_GROUP;
             $gateway_data['ext_data'] = $group;
         }
         $status_data      = array();
