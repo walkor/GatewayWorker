@@ -530,13 +530,16 @@ class Gateway extends Worker
      * @param TcpConnection $connection
      * @param mixed         $data
      * @throws \Exception
+     *
+     * @return void
      */
     public function onWorkerMessage($connection, $data)
     {
         $cmd = $data['cmd'];
         if (empty($connection->authorized) && $cmd !== GatewayProtocol::CMD_WORKER_CONNECT && $cmd !== GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT) {
             self::log("Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort());
-            return $connection->close();
+            $connection->close();
+            return;
         }
         switch ($cmd) {
             // BusinessWorker连接Gateway
@@ -544,7 +547,8 @@ class Gateway extends Worker
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
                     self::log("Gateway: Worker key does not match ".var_export($this->secretKey, true)." !== ". var_export($this->secretKey));
-                    return $connection->close();
+                    $connection->close();
+                    return;
                 }
                 $key = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
                 // 在一台服务器上businessWorker->name不能相同
@@ -562,7 +566,8 @@ class Gateway extends Worker
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
                     self::log("Gateway: GatewayClient key does not match ".var_export($this->secretKey, true)." !== ".var_export($this->secretKey, true));
-                    return $connection->close();
+                    $connection->close();
+                    return;
                 }
                 $connection->authorized = true;
                 return;
@@ -804,6 +809,9 @@ class Gateway extends Worker
                     return;
                 }
                 unset($client_connection->groups[$group], $this->_groupConnections[$group][$connection_id]);
+                if (empty($this->_groupConnections[$group])) {
+                    unset($this->_groupConnections[$group]);
+                }
                 return;
             // 解散分组
             case GatewayProtocol::CMD_UNGROUP:
