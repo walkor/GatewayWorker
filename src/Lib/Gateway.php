@@ -1070,7 +1070,7 @@ class Gateway
     public static function updateSession($client_id, array $session)
     {
         if (Context::$client_id === $client_id) {
-            $_SESSION = $session + (array)$_SESSION;
+            $_SESSION = array_replace_recursive((array)$_SESSION, $session);
             Context::$old_session = $_SESSION;
         }
         static::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_UPDATE_SESSION, '', Context::sessionEncode($session));
