@@ -40,7 +40,7 @@ class BusinessWorker extends Worker
     /**
      * 注册中心地址
      *
-     * @var string
+     * @var string|array
      */
     public $registerAddress = '127.0.0.1:1236';
 
@@ -207,7 +207,12 @@ class BusinessWorker extends Worker
         if (!class_exists('\Protocols\GatewayProtocol')) {
             class_alias('GatewayWorker\Protocols\GatewayProtocol', 'Protocols\GatewayProtocol');
         }
+
+        if (!is_array($this->registerAddress)) {
+            $this->registerAddress = array($this->registerAddress);
+        }
         $this->connectToRegister();
+
         \GatewayWorker\Lib\Gateway::setBusinessWorker($this);
         \GatewayWorker\Lib\Gateway::$secretKey = $this->secretKey;
         if ($this->_onWorkerStart) {
@@ -244,10 +249,6 @@ class BusinessWorker extends Worker
             $this->_eventOnWebSocketConnect = $this->eventHandler . '::onWebSocketConnect';
         }
 
-        // 如果Register服务器不在本地服务器，则需要保持心跳
-        if (strpos($this->registerAddress, '127.0.0.1') !== 0) {
-            Timer::add(self::PERSISTENCE_CONNECTION_PING_INTERVAL, array($this, 'pingRegister'));
-        }
     }
 
     /**
@@ -289,22 +290,29 @@ class BusinessWorker extends Worker
      */
     public function connectToRegister()
     {
-        $this->_registerConnection = new AsyncTcpConnection("text://{$this->registerAddress}");
-        $this->_registerConnection->send('{"event":"worker_connect","secret_key":"' . $this->secretKey . '"}');
-        $this->_registerConnection->onClose   = array($this, 'onRegisterConnectionClose');
-        $this->_registerConnection->onMessage = array($this, 'onRegisterConnectionMessage');
-        $this->_registerConnection->connect();
+        foreach ($this->registerAddress as $register_address) {
+            $register_connection = new AsyncTcpConnection("text://{$register_address}");
+            $secret_key = $this->secretKey;
+            $register_connection->onConnect = function () use ($register_connection, $secret_key, $register_address) {
+                $register_connection->send('{"event":"worker_connect","secret_key":"' . $secret_key . '"}');
+                // 如果Register服务器不在本地服务器，则需要保持心跳
+                if (strpos($register_address, '127.0.0.1') !== 0) {
+                    $register_connection->ping_timer = Timer::add(self::PERSISTENCE_CONNECTION_PING_INTERVAL, function () use ($register_connection) {
+                        $register_connection->send('{"event":"ping"}');
+                    });
+                }
+            };
+            $register_connection->onClose = function ($register_connection) {
+                if(!empty($register_connection->ping_timer)) {
+                    Timer::del($register_connection->ping_timer);
+                }
+                $register_connection->reconnect(1);
+            };
+            $register_connection->onMessage = array($this, 'onRegisterConnectionMessage');
+            $register_connection->connect();
+        }
     }
 
-    /**
-     * 与注册中心连接关闭时，定时重连
-     *
-     * @return void
-     */
-    public function onRegisterConnectionClose()
-    {
-        Timer::add(1, array($this, 'connectToRegister'), null, false);
-    }
 
     /**
      * 当注册中心发来消息时
@@ -547,16 +555,6 @@ class BusinessWorker extends Worker
                     Worker::stopAll();
                 }
                 break;
-        }
-    }
-
-    /**
-     * 向 Register 发送心跳，用来保持长连接
-     */
-    public function pingRegister()
-    {
-        if ($this->_registerConnection) {
-            $this->_registerConnection->send('{"event":"ping"}');
         }
     }
 }
