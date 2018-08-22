@@ -52,7 +52,7 @@ class Gateway
      * 与Gateway是否是长链接
      * @var bool
      */
-    public static $persistentConnection = true;
+    public static $persistentConnection = false;
     
     /**
      * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
