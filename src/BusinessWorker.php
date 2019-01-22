@@ -406,7 +406,11 @@ class BusinessWorker extends Worker
             case GatewayProtocol::CMD_ON_CLOSE:
                 unset($this->_sessionVersion[Context::$client_id]);
                 if ($this->_eventOnClose) {
-                    call_user_func($this->_eventOnClose, Context::$client_id);
+                      $session = [];
+                    if ($data['ext_data']) {
+                        $session = unserialize($data['ext_data']);
+                    }
+                    call_user_func($this->_eventOnClose, Context::$client_id, $session);
                 }
                 break;
             case GatewayProtocol::CMD_ON_WEBSOCKET_CONNECT:
