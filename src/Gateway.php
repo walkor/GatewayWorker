@@ -374,7 +374,7 @@ class Gateway extends Worker
             /** @var TcpConnection $worker_connection */
             $worker_connection = call_user_func($this->router, $this->_workerConnections, $connection, $cmd, $body);
             if (false === $worker_connection->send($gateway_data)) {
-                $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://wiki.workerman.net/Error2";
+                $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://doc2.workerman.net/send-buffer-overflow.html";
                 static::log($msg);
                 return false;
             }
@@ -384,7 +384,7 @@ class Gateway extends Worker
             // 所以不记录日志，只是关闭连接
             $time_diff = 2;
             if (time() - $this->_startTime >= $time_diff) {
-                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://wiki.workerman.net/Error3';
+                $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://doc2.workerman.net/send-buffer-to-worker-fail.html';
                 static::log($msg);
             }
             $connection->destroy();
