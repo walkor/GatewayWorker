@@ -38,7 +38,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '3.0.14';
+    const VERSION = '3.0.13';
 
     /**
      * 本机 IP
