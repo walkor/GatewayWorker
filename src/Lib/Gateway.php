@@ -799,7 +799,7 @@ class Gateway
     /**
      * 踢掉某个客户端，并以$message通知被踢掉客户端
      *
-     * @param int $client_id
+     * @param string $client_id
      * @param string $message
      * @return void
      */
