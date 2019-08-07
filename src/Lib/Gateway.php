@@ -1315,8 +1315,8 @@ class Gateway
         if(empty($addresses_cache) || $time_now - $last_update > $expiration_time) {
             foreach ($register_addresses as $register_address) {
                 $client = stream_socket_client('tcp://' . $register_address, $errno, $errmsg, static::$connectTimeout);
-                if (!$client) {
-                    continue;
+                if ($client) {
+                    break;
                 }
             }
             if (!$client) {
