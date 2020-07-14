@@ -38,7 +38,7 @@ class Gateway extends Worker
      *
      * @var string
      */
-    const VERSION = '3.0.16';
+    const VERSION = '3.0.17';
 
     /**
      * 本机 IP
@@ -323,7 +323,7 @@ class Gateway extends Worker
                 $connection->_onWebSocketConnect = $connection->onWebSocketConnect;
             }
         }
-        if ($connection->protocol === '\Workerman\Protocols\Websocket') {
+        if ($connection->protocol === '\Workerman\Protocols\Websocket' || $connection->protocol === 'Workerman\Protocols\Websocket') {
             $connection->onWebSocketConnect = array($this, 'onWebsocketConnect');
         }
 
