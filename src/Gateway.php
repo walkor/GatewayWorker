@@ -492,6 +492,7 @@ class Gateway extends Worker
 
         // 初始化 gateway 内部的监听，用于监听 worker 的连接已经连接上发来的数据
         $this->_innerTcpWorker = new Worker("GatewayProtocol://{$this->lanIp}:{$this->lanPort}");
+	$this->_innerTcpWorker->reusePort = false;
         $this->_innerTcpWorker->listen();
 	$this->_innerTcpWorker->name = 'GatewayInnerWorker';
 
