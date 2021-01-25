@@ -204,6 +204,10 @@ class BusinessWorker extends Worker
      */
     protected function onWorkerStart()
     {
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+
         if (!class_exists('\Protocols\GatewayProtocol')) {
             class_alias('GatewayWorker\Protocols\GatewayProtocol', 'Protocols\GatewayProtocol');
         }

@@ -81,6 +81,9 @@ class Register extends Worker
         
         // 强制使用text协议
         $this->protocol = '\Workerman\Protocols\Text';
+
+        // reusePort
+        $this->reusePort = false;
         
         // 运行父方法
         parent::run();
