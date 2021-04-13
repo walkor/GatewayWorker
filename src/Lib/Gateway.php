@@ -137,7 +137,7 @@ class Gateway
     /**
      * 向某个client_id对应的连接发消息
      *
-     * @param int    $client_id
+     * @param string    $client_id
      * @param string $message
      * @return void
      */
@@ -171,7 +171,7 @@ class Gateway
     /**
      * 判断client_id对应的连接是否在线
      *
-     * @param int $client_id
+     * @param string $client_id
      * @return int 0|1
      */
     public static function isOnline($client_id)
@@ -837,7 +837,7 @@ class Gateway
     /**
      * 踢掉某个客户端并直接立即销毁相关连接
      *
-     * @param int $client_id
+     * @param string $client_id
      * @return bool
      */
     public static function destoryClient($client_id)
@@ -873,7 +873,7 @@ class Gateway
     /**
      * 将 client_id 与 uid 绑定
      *
-     * @param int        $client_id
+     * @param string        $client_id
      * @param int|string $uid
      * @return void
      */
@@ -885,7 +885,7 @@ class Gateway
     /**
      * 将 client_id 与 uid 解除绑定
      *
-     * @param int        $client_id
+     * @param string        $client_id
      * @param int|string $uid
      * @return void
      */
@@ -897,7 +897,7 @@ class Gateway
     /**
      * 将 client_id 加入组
      *
-     * @param int        $client_id
+     * @param string        $client_id
      * @param int|string $group
      * @return void
      */
@@ -910,7 +910,7 @@ class Gateway
     /**
      * 将 client_id 离开组
      *
-     * @param int        $client_id
+     * @param string        $client_id
      * @param int|string $group
      *
      * @return void
@@ -1025,7 +1025,7 @@ class Gateway
     /**
      * 更新 session，框架自动调用，开发者不要调用
      *
-     * @param int    $client_id
+     * @param string    $client_id
      * @param string $session_str
      * @return bool
      */
@@ -1037,7 +1037,7 @@ class Gateway
     /**
      * 设置 session，原session值会被覆盖
      *
-     * @param int   $client_id
+     * @param string   $client_id
      * @param array $session
      *
      * @return void
@@ -1054,7 +1054,7 @@ class Gateway
     /**
      * 更新 session，实际上是与老的session合并
      *
-     * @param int   $client_id
+     * @param string   $client_id
      * @param array $session
      *
      * @return void
@@ -1071,7 +1071,7 @@ class Gateway
     /**
      * 获取某个client_id的session
      *
-     * @param int   $client_id
+     * @param string   $client_id
      * @return mixed false表示出错、null表示用户不存在、array表示具体的session信息 
      */
     public static function getSession($client_id)
@@ -1095,7 +1095,7 @@ class Gateway
     /**
      * 向某个用户网关发送命令和消息
      *
-     * @param int    $client_id
+     * @param string    $client_id
      * @param int    $cmd
      * @param string $message
      * @param string $ext_data
