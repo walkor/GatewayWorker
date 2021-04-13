@@ -575,7 +575,13 @@ class Gateway extends Worker
             // 向某客户端发送数据，Gateway::sendToClient($client_id, $message);
             case GatewayProtocol::CMD_SEND_TO_ONE:
                 if (isset($this->_clientConnections[$data['connection_id']])) {
-                    $this->_clientConnections[$data['connection_id']]->send($data['body']);
+                    $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
+                    $body = $data['body'];
+                    if (!$raw && $this->protocolAccelerate && $this->protocol) {
+                        $body = $this->preEncodeForClient($body);
+                        $raw = true;
+                    }
+                    $this->_clientConnections[$data['connection_id']]->send($body, $raw);
                 }
                 return;
             // 踢出用户，Gateway::closeClient($client_id, $message);
@@ -766,12 +772,18 @@ class Gateway extends Worker
                 return;
             // 发送数据给 uid Gateway::sendToUid($uid, $msg);
             case GatewayProtocol::CMD_SEND_TO_UID:
+                $raw = (bool)($data['flag'] & GatewayProtocol::FLAG_NOT_CALL_ENCODE);
+                $body = $data['body'];
+                if (!$raw && $this->protocolAccelerate && $this->protocol) {
+                    $body = $this->preEncodeForClient($body);
+                    $raw = true;
+                }
                 $uid_array = json_decode($data['ext_data'], true);
                 foreach ($uid_array as $uid) {
                     if (!empty($this->_uidConnections[$uid])) {
                         foreach ($this->_uidConnections[$uid] as $connection) {
                             /** @var TcpConnection $connection */
-                            $connection->send($data['body']);
+                            $connection->send($body, $raw);
                         }
                     }
                 }
