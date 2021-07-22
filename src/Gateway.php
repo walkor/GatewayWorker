@@ -134,6 +134,20 @@ class Gateway extends Worker
     public $protocolAccelerate = false;
 
     /**
+     * BusinessWorker 连接成功之后触发
+     *
+     * @var callback|null
+     */
+    public $onBusinessWorkerConnected = null;
+
+    /**
+     * BusinessWorker 关闭时触发
+     *
+     * @var callback|null
+     */
+    public $onBusinessWorkerClose = null;
+
+    /**
      * 保存客户端的所有 connection 对象
      *
      * @var array
@@ -561,6 +575,9 @@ class Gateway extends Worker
 		        $connection->key = $key;
                 $this->_workerConnections[$key] = $connection;
                 $connection->authorized = true;
+                if ($this->onBusinessWorkerConnected) {
+                    call_user_func($this->onBusinessWorkerConnected, $connection);
+                }
                 return;
             // GatewayClient连接Gateway
             case GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT:
@@ -920,6 +937,9 @@ class Gateway extends Worker
     {
         if (isset($connection->key)) {
             unset($this->_workerConnections[$connection->key]);
+            if ($this->onBusinessWorkerClose) {
+                call_user_func($this->onBusinessWorkerClose, $connection);
+            }
         }
     }
 
