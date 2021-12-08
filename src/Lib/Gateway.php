@@ -140,11 +140,11 @@ class Gateway
      * @param string    $client_id
      * @param string $message
      * @param bool $raw
-     * @return void
+     * @return bool
      */
     public static function sendToClient($client_id, $message, $raw = false)
     {
-        return static::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_SEND_TO_ONE, $message, $raw);
+        return static::sendCmdAndMessageToClient($client_id, GatewayProtocol::CMD_SEND_TO_ONE, $message, '', $raw);
     }
 
     /**
@@ -156,7 +156,7 @@ class Gateway
      */
     public static function sendToCurrentClient($message, $raw = false)
     {
-        return static::sendCmdAndMessageToClient(null, GatewayProtocol::CMD_SEND_TO_ONE, $message, $raw);
+        return static::sendCmdAndMessageToClient(null, GatewayProtocol::CMD_SEND_TO_ONE, $message, '', $raw);
     }
 
     /**
