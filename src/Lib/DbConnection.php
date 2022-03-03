@@ -1735,13 +1735,16 @@ class DbConnection
             if (!empty($this->parameters)) {
                 foreach ($this->parameters as $param) {
                     $parameters = explode("\x7F", $param);
+                    if ($parameters[0][0] !== ':') {
+                        $parameters[0] = intval($parameters[0]);
+                    }
                     $this->sQuery->bindParam($parameters[0], $parameters[1]);
                 }
             }
             $this->success = $this->sQuery->execute();
         } catch (PDOException $e) {
             // 服务端断开时重连一次
-            if ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013) {
+            if (isset($e->errorInfo[1]) && ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013)) {
                 $this->closeConnection();
                 $this->connect();
 
