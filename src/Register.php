@@ -14,7 +14,7 @@
 namespace GatewayWorker;
 
 use Workerman\Worker;
-use Workerman\Lib\Timer;
+use Workerman\Timer;
 
 /**
  *
