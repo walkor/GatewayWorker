@@ -53,6 +53,12 @@ class Gateway
      * @var bool
      */
     public static $persistentConnection = false;
+
+    /**
+     * 是否清除注册地址缓存
+     * @var bool
+     */
+    public static $addressesCacheDisable = false;
     
     /**
      * 向所有客户端连接(或者 client_id_array 指定的客户端连接)广播消息
@@ -1319,6 +1325,9 @@ class Gateway
     protected static function getAllGatewayAddressesFromRegister()
     {
         static $addresses_cache, $last_update;
+        if (static::$addressesCacheDisable) {
+            $addresses_cache = null;
+        }
         $time_now = time();
         $expiration_time = 1;
         $register_addresses = (array)static::$registerAddress;
