@@ -253,6 +253,9 @@ class Gateway extends Worker
         parent::__construct($socket_name, $context_option);
 		$this->_gatewayPort = substr(strrchr($socket_name,':'),1);
         $this->router = array("\\GatewayWorker\\Gateway", 'routerBind');
+
+        $backtrace               = debug_backtrace();
+        $this->_autoloadRootPath = dirname($backtrace[0]['file']);
     }
 
     /**
@@ -508,6 +511,10 @@ class Gateway extends Worker
         $this->_innerTcpWorker->reusePort = false;
         $this->_innerTcpWorker->listen();
         $this->_innerTcpWorker->name = 'GatewayInnerWorker';
+
+        if ($this->_autoloadRootPath) {
+            Autoloader::setRootPath($this->_autoloadRootPath);
+        }
 
         // 设置内部监听的相关回调
         $this->_innerTcpWorker->onMessage = array($this, 'onWorkerMessage');
