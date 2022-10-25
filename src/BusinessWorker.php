@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of workerman.
  *
@@ -82,21 +83,21 @@ class BusinessWorker extends Worker
     /**
      * 保存用户设置的 worker 启动回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_onWorkerStart = null;
 
     /**
      * 保存用户设置的 workerReload 回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_onWorkerReload = null;
     
     /**
      * 保存用户设置的 workerStop 回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_onWorkerStop= null;
 
@@ -131,21 +132,21 @@ class BusinessWorker extends Worker
     /**
      * Event::onConnect 回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_eventOnConnect = null;
 
     /**
      * Event::onMessage 回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_eventOnMessage = null;
 
     /**
      * Event::onClose 回调
      *
-     * @var callback
+     * @var callable
      */
     protected $_eventOnClose = null;
 
