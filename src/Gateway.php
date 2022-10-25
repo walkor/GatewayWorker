@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of workerman.
  *
@@ -107,7 +108,7 @@ class Gateway extends Worker
     /**
      * 路由函数
      *
-     * @var callback
+     * @var callable|null
      */
     public $router = null;
 
@@ -136,14 +137,14 @@ class Gateway extends Worker
     /**
      * BusinessWorker 连接成功之后触发
      *
-     * @var callback|null
+     * @var callable|null
      */
     public $onBusinessWorkerConnected = null;
 
     /**
      * BusinessWorker 关闭时触发
      *
-     * @var callback|null
+     * @var callable|null
      */
     public $onBusinessWorkerClose = null;
 
@@ -183,35 +184,35 @@ class Gateway extends Worker
     /**
      * 当 worker 启动时
      *
-     * @var callback
+     * @var callable|null
      */
     protected $_onWorkerStart = null;
 
     /**
      * 当有客户端连接时
      *
-     * @var callback
+     * @var callable|null
      */
     protected $_onConnect = null;
 
     /**
      * 当客户端发来消息时
      *
-     * @var callback
+     * @var callable|null
      */
     protected $_onMessage = null;
 
     /**
      * 当客户端连接关闭时
      *
-     * @var callback
+     * @var callable|null
      */
     protected $_onClose = null;
 
     /**
      * 当 worker 停止时
      *
-     * @var callback
+     * @var callable|null
      */
     protected $_onWorkerStop = null;
 
