@@ -59,7 +59,7 @@ class Gateway extends Worker
      * $gateway->innerTcpWorkerListen=172.25.0.2; // || 0.0.0.0
      *
      * GatewayClientSDK connect  192.168.1.2:lanPort
-     * $this->_innerTcpWorker listen  $gateway->lanIp:lanPort
+     * $this->_innerTcpWorker listen  $gateway->innerTcpWorkerListen:lanPort
      *
      */
     public $innerTcpWorkerListen='';
