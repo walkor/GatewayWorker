@@ -448,7 +448,7 @@ class BusinessWorker extends Worker
      */
     public function onGatewayClose($connection)
     {
-        $addr = $connection->remoteAddress;
+        $addr = $connection->remoteAddr;
         unset($this->gatewayConnections[$addr], $this->_connectingGatewayAddresses[$addr]);
         if (isset($this->_gatewayAddresses[$addr]) && !isset($this->_waitingConnectGatewayAddresses[$addr])) {
             Timer::add(1, array($this, 'tryToConnectGateway'), array($addr), false);
@@ -465,7 +465,7 @@ class BusinessWorker extends Worker
     {
         if (!isset($this->gatewayConnections[$addr]) && !isset($this->_connectingGatewayAddresses[$addr]) && isset($this->_gatewayAddresses[$addr])) {
             $gateway_connection                    = new AsyncTcpConnection("GatewayProtocol://$addr");
-            $gateway_connection->remoteAddress     = $addr;
+            $gateway_connection->remoteAddr        = $addr;
             $gateway_connection->onConnect         = array($this, 'onConnectGateway');
             $gateway_connection->onMessage         = array($this, 'onGatewayMessage');
             $gateway_connection->onClose           = array($this, 'onGatewayClose');
@@ -514,8 +514,8 @@ class BusinessWorker extends Worker
      */
     public function onConnectGateway($connection)
     {
-        $this->gatewayConnections[$connection->remoteAddress] = $connection;
-        unset($this->_connectingGatewayAddresses[$connection->remoteAddress], $this->_waitingConnectGatewayAddresses[$connection->remoteAddress]);
+        $this->gatewayConnections[$connection->remoteAddr] = $connection;
+        unset($this->_connectingGatewayAddresses[$connection->remoteAddr], $this->_waitingConnectGatewayAddresses[$connection->remoteAddr]);
     }
 
     /**

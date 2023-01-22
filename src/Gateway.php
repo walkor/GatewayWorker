@@ -523,9 +523,9 @@ class Gateway extends Worker
          //如为公网IP监听，直接换成0.0.0.0 ，否则用内网IP
         $listen_ip=filter_var($this->lanIp,FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)?'0.0.0.0':$this->lanIp;
 	    
-	//Use scenario to see line 64
-        if($this->innerTcpWorkerListen!='' ){
-            $listen_ip=$this->innerTcpWorkerListen;
+	    //Use scenario to see line 64
+        if($this->innerTcpWorkerListen != '') {
+            $listen_ip = $this->innerTcpWorkerListen;
         }
 
         // 初始化 gateway 内部的监听，用于监听 worker 的连接已经连接上发来的数据
@@ -534,7 +534,7 @@ class Gateway extends Worker
         $this->_innerTcpWorker->listen();
         $this->_innerTcpWorker->name = 'GatewayInnerWorker';
 
-        if ($this->_autoloadRootPath) {
+        if ($this->_autoloadRootPath && class_exists(Autoloader::class)) {
             Autoloader::setRootPath($this->_autoloadRootPath);
         }
 
