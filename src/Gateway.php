@@ -364,15 +364,35 @@ class Gateway extends Worker
      * websocket握手时触发
      *
      * @param $connection
-     * @param $http_buffer
+     * @param $request
      */
-    public function onWebsocketConnect($connection, $http_buffer)
+    public function onWebsocketConnect($connection, $request)
     {
         if (isset($connection->_onWebSocketConnect)) {
-            call_user_func($connection->_onWebSocketConnect, $connection, $http_buffer);
+            call_user_func($connection->_onWebSocketConnect, $connection, $request);
             unset($connection->_onWebSocketConnect);
         }
-        $this->sendToWorker(GatewayProtocol::CMD_ON_WEBSOCKET_CONNECT, $connection, array('get' => $_GET, 'server' => $_SERVER, 'cookie' => $_COOKIE));
+        if (is_object($request)) {
+            $server = [
+                'QUERY_STRING' => $request->queryString(),
+                'REQUEST_METHOD' => $request->method(),
+                'REQUEST_URI' => $request->uri(),
+                'SERVER_PROTOCOL' => "HTTP/" . $request->protocolVersion(),
+                'SERVER_NAME' => $request->host(false),
+                'CONTENT_TYPE' => $request->header('content-type'),
+                'REMOTE_ADDR' => $connection->getRemoteIp(),
+                'REMOTE_PORT' => $connection->getRemotePort(),
+                'SERVER_PORT' => $connection->getLocalPort(),
+            ];
+            foreach ($request->header() as $key => $header) {
+                $key = str_replace('-', '_', strtoupper($key));
+                $server["HTTP_$key"] = $header;
+            }
+            $data = array('get' => $request->get(), 'server' => $server, 'cookie' => $request->cookie());
+        } else {
+            $data = array('get' => $_GET, 'server' => $_SERVER, 'cookie' => $_COOKIE);
+        }
+        $this->sendToWorker(GatewayProtocol::CMD_ON_WEBSOCKET_CONNECT, $connection, $data);
     }
     
     /**

@@ -53,20 +53,6 @@ class BusinessWorker extends Worker
     public $eventHandler = 'Events';
 
     /**
-     * 业务超时时间，可用来定位程序卡在哪里
-     *
-     * @var int
-     */
-    public $processTimeout = 30;
-
-    /**
-     * 业务超时时间，可用来定位程序卡在哪里
-     *
-     * @var callable|null
-     */
-    public $processTimeoutHandler = '\\Workerman\\Worker::log';
-    
-    /**
      * 秘钥
      *
      * @var string
@@ -228,13 +214,6 @@ class BusinessWorker extends Worker
             call_user_func($this->eventHandler . '::onWorkerStart', $this);
         }
 
-        if (function_exists('pcntl_signal')) {
-            // 业务超时信号处理
-            pcntl_signal(SIGALRM, array($this, 'timeoutHandler'), false);
-        } else {
-            $this->processTimeout = 0;
-        }
-
         // 设置回调
         if (is_callable($this->eventHandler . '::onConnect')) {
             $this->_eventOnConnect = $this->eventHandler . '::onConnect';
@@ -394,9 +373,6 @@ class BusinessWorker extends Worker
             }
         }
 
-        if ($this->processTimeout) {
-            pcntl_alarm($this->processTimeout);
-        }
         // 尝试执行 Event::onConnection、Event::onMessage、Event::onClose
         switch ($cmd) {
             case GatewayProtocol::CMD_ON_CONNECT:
@@ -420,9 +396,6 @@ class BusinessWorker extends Worker
                     call_user_func($this->_eventOnWebSocketConnect, Context::$client_id, $data['body']);
                 }
                 break;
-        }
-        if ($this->processTimeout) {
-            pcntl_alarm(0);
         }
         
         // session 必须是数组
@@ -538,29 +511,5 @@ class BusinessWorker extends Worker
     public function getAllGatewayAddresses()
     {
         return $this->_gatewayAddresses;
-    }
-
-    /**
-     * 业务超时回调
-     *
-     * @param int $signal
-     * @throws \Exception
-     */
-    public function timeoutHandler($signal)
-    {
-        switch ($signal) {
-            // 超时时钟
-            case SIGALRM:
-                // 超时异常
-                $e         = new \Exception("process_timeout", 506);
-                $trace_str = $e->getTraceAsString();
-                // 去掉第一行timeoutHandler的调用栈
-                $trace_str = $e->getMessage() . ":\n" . substr($trace_str, strpos($trace_str, "\n") + 1) . "\n";
-                // 开发者没有设置超时处理函数，或者超时处理函数返回空则执行退出
-                if (!$this->processTimeoutHandler || !call_user_func($this->processTimeoutHandler, $trace_str, $e)) {
-                    Worker::stopAll();
-                }
-                break;
-        }
     }
 }
