@@ -34,13 +34,7 @@ use GatewayWorker\Protocols\GatewayProtocol;
  */
 class Gateway extends Worker
 {
-    /**
-     * 版本
-     *
-     * @var string
-     */
-    const VERSION = '3.0.26';
-
+    
     /**
      * 本机 IP
      *  单机部署默认 127.0.0.1，如果是分布式部署，需要设置成本机 IP
