@@ -86,13 +86,6 @@ class Gateway extends Worker
     public $registerAddress = '127.0.0.1:1236';
 
     /**
-     * 是否可以平滑重启，gateway 不能平滑重启，否则会导致连接断开
-     *
-     * @var bool
-     */
-    public $reloadable = false;
-
-    /**
      * 心跳时间间隔
      *
      * @var int
@@ -267,6 +260,7 @@ class Gateway extends Worker
     public function __construct($socket_name, $context_option = array())
     {
         parent::__construct($socket_name, $context_option);
+        $this->reloadable = false;
 		$this->_gatewayPort = substr(strrchr($socket_name,':'),1);
         $this->router = array("\\GatewayWorker\\Gateway", 'routerBind');
 

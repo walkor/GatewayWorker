@@ -25,16 +25,7 @@ use Workerman\Timer;
  */
 class Register extends Worker
 {
-    /**
-     * {@inheritdoc}
-     */
-    public $name = 'Register';
 
-    /**
-     * {@inheritdoc}
-     */
-    public $reloadable = false;
-    
     /**
      * 秘钥
      * @var string
@@ -61,6 +52,14 @@ class Register extends Worker
      * @var int
      */
     protected $_startTime = 0;
+
+
+    public function __construct(string $socketName = null, array $contextOption = [])
+    {
+        $this->name = 'Register';
+        $this->reloadable = false;
+        parent::__construct($socketName, $contextOption);
+    }
 
     /**
      * {@inheritdoc}
