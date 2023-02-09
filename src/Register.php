@@ -64,7 +64,7 @@ class Register extends Worker
     /**
      * {@inheritdoc}
      */
-    public function run()
+    public function run(): void
     {
         // 设置 onMessage 连接回调
         $this->onConnect = array($this, 'onConnect');

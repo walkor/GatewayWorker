@@ -173,7 +173,7 @@ class BusinessWorker extends Worker
     /**
      * {@inheritdoc}
      */
-    public function run()
+    public function run(): void
     {
         $this->_onWorkerStart  = $this->onWorkerStart;
         $this->_onWorkerReload = $this->onWorkerReload;

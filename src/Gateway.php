@@ -34,7 +34,13 @@ use GatewayWorker\Protocols\GatewayProtocol;
  */
 class Gateway extends Worker
 {
-    
+    /**
+     * 版本
+     *
+     * @var string
+     */
+    const VERSION = '4.0.0';
+
     /**
      * 本机 IP
      *  单机部署默认 127.0.0.1，如果是分布式部署，需要设置成本机 IP
@@ -265,7 +271,7 @@ class Gateway extends Worker
     /**
      * {@inheritdoc}
      */
-    public function run()
+    public function run(): void
     {
         // 保存用户的回调，当对应的事件发生时触发
         $this->_onWorkerStart = $this->onWorkerStart;
@@ -1085,7 +1091,8 @@ class Gateway extends Worker
      * Log.
      * @param string $msg
      */
-    public static function log($msg){
+    public static function log($msg): void
+    {
         Timer::add(1, function() use ($msg) {
             Worker::log($msg);
         }, null, false);
