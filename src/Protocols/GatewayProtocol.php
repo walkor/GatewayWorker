@@ -176,7 +176,7 @@ class GatewayProtocol
             $data['body'] = serialize($data['body']);
         }
         $data['flag'] |= $flag;
-        $ext_len      = strlen($data['ext_data']);
+        $ext_len      = strlen($data['ext_data']??'');
         $package_len  = self::HEAD_LEN + $ext_len + strlen($data['body']);
         return pack("NCNnNnNCnN", $package_len,
             $data['cmd'], $data['local_ip'],
