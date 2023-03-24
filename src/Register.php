@@ -161,6 +161,7 @@ class Register extends Worker
      */
     public function onClose($connection)
     {
+        Timer::del($connection->timeout_timerid);
         if (isset($this->_gatewayConnections[$connection->id])) {
             unset($this->_gatewayConnections[$connection->id]);
             $this->broadcastAddresses();
