@@ -323,7 +323,7 @@ class Gateway extends Worker
         $connection->id = self::generateConnectionId();
         // 保存该连接的内部通讯的数据包报头，避免每次重新初始化
         $connection->gatewayHeader = array(
-            'local_ip'      => ip2long($this->lanIp),
+            'local_ip'      => ip2long(gethostbyname($this->lanIp)),
             'local_port'    => $this->lanPort,
             'client_ip'     => ip2long($connection->getRemoteIp()),
             'client_port'   => $connection->getRemotePort(),
