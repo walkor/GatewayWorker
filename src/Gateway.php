@@ -34,13 +34,7 @@ use GatewayWorker\Protocols\GatewayProtocol;
  */
 class Gateway extends Worker
 {
-    /**
-     * 版本
-     *
-     * @var string
-     */
-    const VERSION = '4.0.0';
-
+    
     /**
      * 本机 IP
      *  单机部署默认 127.0.0.1，如果是分布式部署，需要设置成本机 IP
@@ -427,7 +421,7 @@ class Gateway extends Worker
             $worker_connection = call_user_func($this->router, $this->_workerConnections, $connection, $cmd, $body);
             if (false === $worker_connection->send($gateway_data)) {
                 $msg = "SendBufferToWorker fail. May be the send buffer are overflow. See http://doc2.workerman.net/send-buffer-overflow.html";
-                static::log($msg);
+                static::error($msg);
                 return false;
             }
         } // 没有可用的 worker
@@ -437,7 +431,7 @@ class Gateway extends Worker
             $time_diff = 2;
             if (time() - $this->_startTime >= $time_diff) {
                 $msg = 'SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready. See http://doc2.workerman.net/send-buffer-to-worker-fail.html';
-                static::log($msg);
+                static::error($msg);
             }
             $connection->destroy();
             return false;
@@ -591,7 +585,7 @@ class Gateway extends Worker
     {
         $cmd = $data['cmd'];
         if (empty($connection->authorized) && $cmd !== GatewayProtocol::CMD_WORKER_CONNECT && $cmd !== GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT) {
-            self::log("Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort());
+            self::error("Unauthorized request from " . $connection->getRemoteIp() . ":" . $connection->getRemotePort());
             $connection->close();
             return;
         }
@@ -600,14 +594,14 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_WORKER_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    self::log("Gateway: Worker key does not match ".var_export($this->secretKey, true)." !== ". var_export($this->secretKey));
+                    self::error("Gateway: Worker key does not match ".var_export($this->secretKey, true)." !== ". var_export($this->secretKey));
                     $connection->close();
                     return;
                 }
                 $key = $connection->getRemoteIp() . ':' . $worker_info['worker_key'];
                 // 在一台服务器上businessWorker->name不能相同
                 if (isset($this->_workerConnections[$key])) {
-                    self::log("Gateway: Worker->name conflict. Key:{$key}");
+                    self::error("Gateway: Worker->name conflict. Key:{$key}");
 		            $connection->close();
                     return;
                 }
@@ -622,7 +616,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_GATEWAY_CLIENT_CONNECT:
                 $worker_info = json_decode($data['body'], true);
                 if ($worker_info['secret_key'] !== $this->secretKey) {
-                    self::log("Gateway: GatewayClient key does not match ".var_export($this->secretKey, true)." !== ".var_export($this->secretKey, true));
+                    self::error("Gateway: GatewayClient key does not match ".var_export($this->secretKey, true)." !== ".var_export($this->secretKey, true));
                     $connection->close();
                     return;
                 }
@@ -1088,10 +1082,10 @@ class Gateway extends Worker
     }
 
     /**
-     * Log.
+     * error.
      * @param string $msg
      */
-    public static function log($msg): void
+    public static function error($msg)
     {
         Timer::add(1, function() use ($msg) {
             Worker::log($msg);
