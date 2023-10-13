@@ -966,6 +966,21 @@ class Gateway extends Worker
                 }
                 $connection->send(pack('N', strlen($buffer)) . $buffer, true);
                 return;
+            // 批量获取与 uid 绑定的所有 client_id Gateway::batchGetClientIdByUid($uid);
+            case GatewayProtocol::CMD_BATCH_GET_CLIENT_ID_BY_UID:
+                $uids = json_decode($data['ext_data']);
+                $return = [];
+                foreach ($uids as $uid) {
+                    if (empty($this->_uidConnections[$uid])) {
+                        $return[$uid] = [];
+                    } else {
+                        $return[$uid] = array_keys($this->_uidConnections[$uid]);
+                    }
+                }
+                $buffer = serialize($return);
+
+                $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                return;
             default :
                 $err_msg = "gateway inner pack err cmd=$cmd";
                 echo $err_msg;

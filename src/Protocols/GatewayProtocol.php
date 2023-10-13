@@ -79,6 +79,9 @@ class GatewayProtocol
     // 根据uid获取绑定的clientid
     const CMD_GET_CLIENT_ID_BY_UID = 15;
 
+    // 批量获取uid列表批量获取绑定的clientid
+    const CMD_BATCH_GET_CLIENT_ID_BY_UID = 16;
+
     // 加入组
     const CMD_JOIN_GROUP = 20;
 
