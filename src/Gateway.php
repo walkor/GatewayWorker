@@ -1058,7 +1058,7 @@ class Gateway extends Worker
             // 业务服务器下线, 清理路由表数据
             if (static::$selectLoadBalancingMode === static::ROUTER_LEAST_CONNECTIONS)
             {
-//                unset(static::$leastConnectionsRecord[$connection->key]);
+                unset(static::$leastConnectionsRecord[$connection->key]);
             }
             unset($this->_workerConnections[$connection->key]);
             if ($this->onBusinessWorkerClose) {
