@@ -555,7 +555,7 @@ class Gateway extends Worker
             isset($connection->businessworker_address))
         {
             // 客户端连接数 >0,减少连接数
-            if((static::$leastConnectionsRecord[$connection->businessworker_address]) > 0)
+            if((static::$leastConnectionsRecord[$connection->businessworker_address])??0 > 0)
             {
                 static::$leastConnectionsRecord[$connection->businessworker_address]--;
             }
@@ -1058,7 +1058,7 @@ class Gateway extends Worker
             // 业务服务器下线, 清理路由表数据
             if (static::$selectLoadBalancingMode === static::ROUTER_LEAST_CONNECTIONS)
             {
-                unset(static::$leastConnectionsRecord[$connection->key]);
+//                unset(static::$leastConnectionsRecord[$connection->key]);
             }
             unset($this->_workerConnections[$connection->key]);
             if ($this->onBusinessWorkerClose) {
