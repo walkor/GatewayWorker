@@ -555,7 +555,7 @@ class Gateway extends Worker
             isset($connection->businessworker_address))
         {
             // 客户端连接数 >0,减少连接数
-            if((static::$leastConnectionsRecord[$connection->businessworker_address]) > 0)
+            if((static::$leastConnectionsRecord[$connection->businessworker_address])??0 > 0)
             {
                 static::$leastConnectionsRecord[$connection->businessworker_address]--;
             }
