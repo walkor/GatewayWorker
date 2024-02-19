@@ -56,6 +56,7 @@ class Gateway extends Worker
      */
     public static $selectLoadBalancingMode = self::ROUTER_LEAST_CONNECTIONS;
 
+
     /**
      * 本机 IP
      *  单机部署默认 127.0.0.1，如果是分布式部署，需要设置成本机 IP
@@ -294,7 +295,7 @@ class Gateway extends Worker
     /**
      * {@inheritdoc}
      */
-    public function run(): void
+    public function run()
     {
         // 保存用户的回调，当对应的事件发生时触发
         $this->_onWorkerStart = $this->onWorkerStart;
@@ -1038,6 +1039,21 @@ class Gateway extends Worker
                 } else {
                     $buffer = serialize(array_keys($this->_uidConnections[$uid]));
                 }
+                $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                return;
+            // 批量获取与 uid 绑定的所有 client_id Gateway::batchGetClientIdByUid($uid);
+            case GatewayProtocol::CMD_BATCH_GET_CLIENT_ID_BY_UID:
+                $uids = json_decode($data['ext_data']);
+                $return = [];
+                foreach ($uids as $uid) {
+                    if (empty($this->_uidConnections[$uid])) {
+                        $return[$uid] = [];
+                    } else {
+                        $return[$uid] = array_keys($this->_uidConnections[$uid]);
+                    }
+                }
+                $buffer = serialize($return);
+
                 $connection->send(pack('N', strlen($buffer)) . $buffer, true);
                 return;
             default :

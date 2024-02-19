@@ -4,7 +4,8 @@
     "homepage": "http://www.workerman.net",
     "license" : "MIT",
     "require": {
-        "workerman/workerman" : "^4.0.0"
+        "php": ">=7.0",
+        "workerman/workerman" : "^4.0.30"
     },
     "autoload": {
         "psr-4": {"GatewayWorker\\": "./src"}
