@@ -1056,6 +1056,21 @@ class Gateway extends Worker
 
                 $connection->send(pack('N', strlen($buffer)) . $buffer, true);
                 return;
+            // 批量获取群组ID内客户端个数
+            case GatewayProtocol::CMD_BATCH_GET_CLIENT_COUNT_BY_GROUP:
+                $groups = json_decode($data['ext_data'], true);
+                $return = [];
+                foreach ($groups as $group) {
+                    if (isset($this->_groupConnections[$group])) {
+                        $return[$group] = count($this->_groupConnections[$group]);
+                    } else {
+                        $return[$group] = 0;
+                    }
+                }
+
+                $buffer = serialize($return);
+                $connection->send(pack('N', strlen($buffer)) . $buffer, true);
+                return;
             default :
                 $err_msg = "gateway inner pack err cmd=$cmd";
                 echo $err_msg;
