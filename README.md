@@ -28,11 +28,9 @@ composer require workerman/gateway-worker
 使用GatewayWorker开发的项目
 =======
 ## [tadpole](http://kedou.workerman.net/)  
-[Live demo](http://kedou.workerman.net/)  
-[Source code](https://github.com/walkor/workerman)  
+[Source code](https://github.com/walkor/workerman-todpole)  
 ![workerman todpole](http://www.workerman.net/img/workerman-todpole.png)   
 
 ## [chat room](http://chat.workerman.net/)  
-[Live demo](http://chat.workerman.net/)  
 [Source code](https://github.com/walkor/workerman-chat)  
 ![workerman-chat](http://www.workerman.net/img/workerman-chat.png)  
