@@ -685,8 +685,8 @@ class Gateway extends Worker
                 // 在一台服务器上businessWorker->name不能相同
                 if (isset($this->_workerConnections[$key])) {
                     self::error("Gateway: Worker->name conflict. Key:{$key}");
-		            $connection->close();
-                    return;
+                    // 关闭老的，使用新的
+                    $this->_workerConnections[$key]->close();
                 }
 		        $connection->key = $key;
                 $this->_workerConnections[$key] = $connection;
