@@ -14,8 +14,11 @@
  */
 namespace GatewayWorker;
 
+use RuntimeException;
 use Workerman\Connection\TcpConnection;
 
+use Workerman\Events\Swoole;
+use Workerman\Events\Swow;
 use Workerman\Worker;
 use Workerman\Timer;
 use Workerman\Connection\AsyncTcpConnection;
@@ -400,11 +403,15 @@ class BusinessWorker extends Worker
         
         // session 必须是数组
         if ($_SESSION !== null && !is_array($_SESSION)) {
-            throw new \Exception('$_SESSION must be an array. But $_SESSION=' . var_export($_SESSION, true) . ' is not array.');
+            throw new RuntimeException('$_SESSION must be an array. But $_SESSION=' . var_export($_SESSION, true) . ' is not array.');
         }
 
         // 判断 session 是否被更改
         if ($_SESSION !== Context::$old_session && $cmd !== GatewayProtocol::CMD_ON_CLOSE) {
+            // 如果是swoole或者swow环境，不允许使用 $_SESSION 全局变量，协程会导致 $_SESSION 污染
+            if (Worker::$eventLoopClass === Swoole::class || Worker::$eventLoopClass === Swow::class) {
+                echo new RuntimeException('Can not use $_SESSION in swoole or swow environment. Please use \GatewayWorker\Lib\Gateway::setSession to set session data.');
+            }
             $session_str_now = $_SESSION !== null ? Context::sessionEncode($_SESSION) : '';
             \GatewayWorker\Lib\Gateway::setSocketSession(Context::$client_id, $session_str_now);
             $this->_sessionVersion[Context::$client_id] = crc32($session_str_now);

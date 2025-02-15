@@ -295,7 +295,7 @@ class Gateway extends Worker
     /**
      * {@inheritdoc}
      */
-    public function run()
+    public function run(): void
     {
         // 保存用户的回调，当对应的事件发生时触发
         $this->_onWorkerStart = $this->onWorkerStart;
