@@ -54,7 +54,7 @@ class Register extends Worker
     protected $_startTime = 0;
 
 
-    public function __construct(string $socketName = null, array $contextOption = [])
+    public function __construct(string $socketName = '', array $contextOption = [])
     {
         $this->name = 'Register';
         $this->reloadable = false;
