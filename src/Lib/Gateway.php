@@ -1372,7 +1372,11 @@ class Gateway
         $time_now = time();
         $expiration_time = 1;
         $register_addresses = (array)static::$registerAddress;
-        if(empty($addresses_cache[static::$registerAddress]) || $time_now - $last_update[static::$registerAddress] > $expiration_time) {
+        // 一组地址属于同一套注册中心，共用一个缓存；不同配置必须分开缓存
+        $cache_key = is_array(static::$registerAddress)
+            ? json_encode(static::$registerAddress, JSON_UNESCAPED_SLASHES)
+            : static::$registerAddress;
+        if(empty($addresses_cache[$cache_key]) || $time_now - $last_update[$cache_key] > $expiration_time) {
             foreach ($register_addresses as $register_address) {
                 $client = stream_socket_client('tcp://' . $register_address, $errno, $errmsg, static::$connectTimeout);
                 if ($client) {
@@ -1390,14 +1394,14 @@ class Gateway
                 throw new Exception('getAllGatewayAddressesFromRegister fail. tcp://' .
                     $register_address . ' return ' . var_export($ret, true));
             }
-            $last_update[static::$registerAddress] = $time_now;
-            $addresses_cache[static::$registerAddress] = $data['addresses'];
+            $last_update[$cache_key] = $time_now;
+            $addresses_cache[$cache_key] = $data['addresses'];
         }
-        if (!$addresses_cache[static::$registerAddress]) {
+        if (!$addresses_cache[$cache_key]) {
             throw new Exception('Gateway::getAllGatewayAddressesFromRegister() with registerAddress:' .
-                json_encode(static::$registerAddress) . '  return ' . var_export($addresses_cache[static::$registerAddress], true));
+                json_encode(static::$registerAddress) . '  return ' . var_export($addresses_cache[$cache_key], true));
         }
-        return $addresses_cache[static::$registerAddress];
+        return $addresses_cache[$cache_key];
     }
 
     /**
